@@ -1,13 +1,19 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class SceneGUITest : MonoBehaviour 
+public class SceneGUI : MonoBehaviour 
 {
 	private bool isLoadedMenu;
 
-	public void OnGUI()
+	protected virtual void OnGUIExtend()
+	{
+	}
+
+	private void OnGUI()
 	{
 		GUILayout.BeginVertical ();
+
+		OnGUIExtend ();
 
 		if (GUILayout.Button("Screen 1"))
 		{

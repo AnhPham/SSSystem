@@ -50,7 +50,7 @@ public class SSSceneManager : MonoBehaviour
 {	
 	#region Serialize Field
 	[SerializeField]
-	protected GameObject m_LoadingPrefab;		// Loading indicator prefab  (optional)
+	protected GameObject m_LoadingPrefab;			// Loading indicator prefab  (optional)
 
 	[SerializeField]
 	protected int m_SceneDistance = 5000;			// The distance of loaded scenes in Base Scene
@@ -64,7 +64,7 @@ public class SSSceneManager : MonoBehaviour
 
 	#region Singleton
 	protected static SSSceneManager m_Instance;
-	public static SSSceneManager Instance		// Singleton
+	public static SSSceneManager Instance			// Singleton
 	{
 		get { return m_Instance; }
 	}
@@ -367,14 +367,37 @@ public class SSSceneManager : MonoBehaviour
 	{
 		Debug.LogWarning("Stop BGM. You have to override function: StopBGM");
 	}
+
+	/// <summary>
+	/// Raises the scene load event.
+	/// </summary>
+	/// <param name="scene">Root object of loaded scene.</param>
+	protected virtual void OnSceneLoad (GameObject scene)
+	{
+
+	}
+
+	/// <summary>
+	/// Raises the scene unload event.
+	/// </summary>
+	/// <param name="scene">Root object of unloaded scene.</param>
+	protected virtual void OnSceneUnload (GameObject scene)
+	{
+
+	}
 	#endregion
 
 	#region Private Function
 	private IEnumerator LoadScene(string sn)
 	{
 		yield return Application.LoadLevelAdditiveAsync(sn);
-		m_Dict.Add(sn, GameObject.Find(sn));
-		m_Dict[sn].transform.parent = m_Scenes.transform;
+
+		GameObject scene = GameObject.Find (sn);
+
+		m_Dict.Add(sn, scene);
+		scene.transform.parent = m_Scenes.transform;
+
+		OnSceneLoad (scene);
 	}
 
 	private void ActiveScene(string sn)
@@ -398,6 +421,7 @@ public class SSSceneManager : MonoBehaviour
 		if (!isCache)
 		{
 			m_Dict.Remove(sn);
+			OnSceneUnload (sc);
 			Destroy(sc);
 		}
 	}

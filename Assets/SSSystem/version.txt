@@ -1,3 +1,11 @@
+SS-SYSTEM VERSION 1.0.2
+
+RELEASE NOTES:
+
+Version 1.0.2
+- Add OnSceneLoad, OnSceneUnload to SSSceneManager
+- Reorganize Demos. Add Sound demo, Tutorial demo.
+
 Version 1.0.1
 - Change sound files of Demo
 - Remove frame counter in Update() function of SSSceneManager
