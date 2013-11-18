@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class SceneManagerExtend : SSSceneManager
+public class SceneManagerSound : SSSceneManager
 {
 	protected override void Awake ()
 	{
