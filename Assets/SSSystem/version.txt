@@ -1,6 +1,9 @@
-SS-SYSTEM VERSION 1.0.2
+SS-SYSTEM VERSION 1.0.3
 
 RELEASE NOTES:
+
+Version 1.0.3
+- Add SSRootScale (for NGUI)
 
 Version 1.0.2
 - Add OnSceneLoad, OnSceneUnload to SSSceneManager
