@@ -12,7 +12,7 @@ public class SSRootScale : SSRoot
 		_9x16,		// 縦持ち iPhone4inch (iPhone5)
 		_2x3,		// 縦持ち iPhone3.5inch (iPhone4s以前)
 		_3x4,		// 縦持ち iPad
-		_1x1,		//  正方形
+		_1x1,		// 正方形
 		_4x3,		// 横持ち iPad
 		_3x2,		// 横持ち iPhone3.5inch (iPhone4s以前)
 		_16x9,		// 横持ち iPhone4inch (iPhone5)
@@ -73,16 +73,22 @@ public class SSRootScale : SSRoot
 
 
 	#region Private Function
-	void Start()
+	protected override void Start()
 	{
+		// Find all cameras in Scene
 		m_Cameras = gameObject.GetComponentsInChildren<Camera> (true);
+
+		// Find all UIRoot in Scene
 		m_Roots = GetRoots ();
 
+		// Refresh
 		Refresh();
 
+		// Update Scale
 		UpdateScale();
 
-		CameraSetting ();
+		// Base Start
+		base.Start ();
 	}
 
 	void Update()

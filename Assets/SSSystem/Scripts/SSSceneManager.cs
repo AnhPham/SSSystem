@@ -50,16 +50,19 @@ public class SSSceneManager : MonoBehaviour
 {	
 	#region Serialize Field
 	[SerializeField]
-	protected GameObject m_LoadingPrefab;			// Loading indicator prefab  (optional)
+	protected string m_LoadingSceneName;			// Loading scene name  (optional)
 
 	[SerializeField]
+	protected string m_FirstSceneName;				// First scene name  (require)
+
+	//[SerializeField]
 	protected int m_SceneDistance = 5000;			// The distance of loaded scenes in Base Scene
 
-	[SerializeField]
-	protected int m_DepthDistance = 20;				// The camera depth distance of popup layers
+	//[SerializeField]
+	protected int m_DepthDistance = 10;				// The camera depth distance of popup layers
 
-	[SerializeField]
-	protected int m_ShieldTopIndex = 10;			// The index of shield top
+	//[SerializeField]
+	protected int m_ShieldTopIndex = 9;				// The index of shield top
 	#endregion
 
 	#region Singleton
@@ -249,14 +252,7 @@ public class SSSceneManager : MonoBehaviour
 	/// <param name="alpha">Alpha of shield</param>
 	public void ShowLoading(float alpha = 0.2f)
 	{
-		if (m_LoadingPrefab == null) return;
-
-		if (m_Loading == null) 
-		{
-			m_Loading = Instantiate (m_LoadingPrefab) as GameObject;
-			m_Loading.name = m_LoadingPrefab.name;
-			m_Loading.transform.localPosition = new Vector3((m_ShieldTopIndex+0.5f) * m_SceneDistance, 0, -0.1f);
-		}
+		if (m_Loading == null) return;
 
 		ShieldTopOn (alpha);
 		m_Loading.SetActive (true);
@@ -269,7 +265,7 @@ public class SSSceneManager : MonoBehaviour
 	/// </summary>
 	public void HideLoading()
 	{
-		if (m_Loading == null) return;
+		if (m_Loading == null || !m_Loading.activeInHierarchy) return;
 
 		m_LoadingCount--;
 		
@@ -316,13 +312,16 @@ public class SSSceneManager : MonoBehaviour
 	/// </summary>
 	protected virtual void Awake()
 	{
+		m_Instance = this;
+
 		m_SolidCamera = Instantiate (Resources.Load ("SolidCamera")) as GameObject;
 		m_SolidCamera.name = "SolidCamera";
 		m_SolidCamera.transform.localPosition = new Vector3(-(m_ShieldTopIndex+0.5f) * m_SceneDistance, 0, 0);
 		
 		m_Scenes = new GameObject("Scenes");
 		m_Shields = new GameObject("Shields");
-		m_Instance = this;
+
+		StartCoroutine (CreateLoadingsThenLoadFirstScene ());
 	}
 
 	/// <summary>
@@ -385,9 +384,28 @@ public class SSSceneManager : MonoBehaviour
 	{
 
 	}
+
+	#if UNITY_EDITOR || UNITY_ANDROID
+	protected virtual void Update()
+	{
+		if (Input.GetKeyDown (KeyCode.Escape)) 
+		{
+			Close();
+		}
+	}
+	#endif
+
 	#endregion
 
 	#region Private Function
+	private IEnumerator CreateLoadingsThenLoadFirstScene()
+	{
+		yield return StartCoroutine (CreateLoadingBack ());
+		yield return StartCoroutine (CreateLoadingTop ());
+
+		Screen (m_FirstSceneName);
+	}
+
 	private IEnumerator LoadScene(string sn)
 	{
 		yield return Application.LoadLevelAdditiveAsync(sn);
@@ -482,6 +500,9 @@ public class SSSceneManager : MonoBehaviour
 
 		MeshRenderer mesh = m_ShieldTop.GetComponentInChildren<MeshRenderer> ();
 		mesh.material.color = new Color (0, 0, 0, alpha);
+
+		// Lock
+		LockTopScene ();
 	}
 
 	private void ShieldTopOff()
@@ -489,10 +510,18 @@ public class SSSceneManager : MonoBehaviour
 		if (m_ShieldTop != null) 
 		{
 			m_ShieldTop.SetActive (false);
+
+			// Unlock
+			UnlockTopScene ();
 		}
 	}
 
 	private void ShieldOn(int i)
+	{
+		ShieldOn (i, 0.25f);
+	}
+
+	private void ShieldOn(int i, float alpha)
 	{
 		if (i < 0) return;
 
@@ -509,6 +538,27 @@ public class SSSceneManager : MonoBehaviour
 			m_ListShield[i].SetActive(true);
 		}
 
+		MeshRenderer mesh = m_ListShield[i].GetComponentInChildren<MeshRenderer> ();
+		mesh.material.color = new Color (0, 0, 0, alpha);
+
+		// Lock
+		LockTopScene ();
+	}
+
+	private void ShieldOff()
+	{
+		int i = m_Stack.Count - 1;
+
+		if (i < 0) return;
+
+		m_ListShield[i].SetActive(false);
+
+		// Unlock
+		UnlockTopScene ();
+	}
+
+	private void LockTopScene()
+	{
 		// Lock below scene
 		GameObject scene = m_Dict[m_Stack.Peek()];
 		OnLock(scene);
@@ -520,14 +570,8 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private void ShieldOff()
+	private void UnlockTopScene()
 	{
-		int i = m_Stack.Count - 1;
-
-		if (i < 0) return;
-
-		m_ListShield[i].SetActive(false);
-
 		// Unlock below scene
 		GameObject scene = m_Dict[m_Stack.Peek()];
 		OnUnlock(scene);
@@ -542,6 +586,12 @@ public class SSSceneManager : MonoBehaviour
 	private void SetPosition(string sn, int i)
 	{
 		GameObject sc = m_Dict[sn];
+
+		SetPosition (sc, i);
+	}
+
+	private void SetPosition(GameObject sc, int i)
+	{
 		sc.transform.localPosition = new Vector3(i * m_SceneDistance, m_SceneDistance, 0);
 	}
 
@@ -549,6 +599,11 @@ public class SSSceneManager : MonoBehaviour
 	{
 		GameObject sc = m_Dict[sn];
 
+		SetCameras (sc, i);
+	}
+
+	private void SetCameras(GameObject sc, float i)
+	{
 		// Sort by depth
 		List<Camera> cams = new List<Camera>(sc.GetComponentsInChildren<Camera>(true));
 		cams = cams.OrderBy(n => n.depth).ToList<Camera>();
@@ -567,8 +622,11 @@ public class SSSceneManager : MonoBehaviour
 		}
 
 		// Resort camera list by deactive then active again any camera (For NGUI Camera)
-		cams[0].gameObject.SetActive(false);
-		cams[0].gameObject.SetActive(true);
+		if (cams.Count > 0) 
+		{
+			cams [0].gameObject.SetActive (false);
+			cams [0].gameObject.SetActive (true);
+		}
 	}
 
 	private string StackBottom()
@@ -647,18 +705,53 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
+	private IEnumerator CreateLoadingBack()
+	{
+		if (string.IsNullOrEmpty (m_LoadingSceneName)) yield break;
+
+		if (m_LoadingBack == null) 
+		{
+			yield return Application.LoadLevelAdditiveAsync (m_LoadingSceneName);
+
+			m_LoadingBack = GameObject.Find (m_LoadingSceneName);
+			m_LoadingBack.name = m_LoadingBack.name + "Back";
+
+			SetPosition (m_LoadingBack, -m_ShieldTopIndex);
+			SetCameras (m_LoadingBack, -m_ShieldTopIndex);
+
+			m_LoadingBack.SetActive (false);
+		}
+	}
+
+	private IEnumerator CreateLoadingTop()
+	{
+		if (string.IsNullOrEmpty (m_LoadingSceneName)) yield break;
+
+		if (m_Loading == null) 
+		{
+			if (m_LoadingBack == null) {
+				yield return Application.LoadLevelAdditiveAsync (m_LoadingSceneName);
+				m_Loading = GameObject.Find (m_LoadingSceneName);
+				m_Loading.name = m_Loading.name + "Top";
+			} else 
+			{
+				m_Loading = Instantiate (m_LoadingBack) as GameObject;
+				m_Loading.name = m_LoadingBack.name.Replace ("Back", "Top");
+			}
+
+			SetPosition (m_Loading, m_ShieldTopIndex);
+			SetCameras (m_Loading, m_ShieldTopIndex);
+
+			m_Loading.SetActive (false);
+		}
+	}
+
 	private void ShowLoadingBack()
 	{
-		if (m_LoadingPrefab == null) return;
-
-		if (m_LoadingBack == null)
+		if (m_LoadingBack != null) 
 		{
-			m_LoadingBack = Instantiate (m_LoadingPrefab) as GameObject;
-			m_LoadingBack.name = m_LoadingPrefab.name + "Back";
-			m_LoadingBack.transform.localPosition = new Vector3(-(m_ShieldTopIndex+0.5f) * m_SceneDistance, 0, 0.1f);
+			m_LoadingBack.SetActive (true);
 		}
-
-		m_LoadingBack.SetActive (true);
 	}
 
 	private void HideLoadingBack()
@@ -742,6 +835,9 @@ public class SSSceneManager : MonoBehaviour
 			ct.OnSet(data);
 		}
 
+		// Active Empty Shield
+		ShieldOn (ip, 0);
+
 		// Play Animation
 		if (an == null) an = m_Dict[sn].GetComponentInChildren<SSAnimation>();
 		if (an != null)
@@ -751,6 +847,9 @@ public class SSSceneManager : MonoBehaviour
 			an.PlayShow();
 			yield return new WaitForSeconds(an.TimeShow() + 0.1f);
 		}
+
+		// Deactive Empty Shield
+		ShieldOff ();
 
 		// Event
 		if (ct != null)
@@ -796,13 +895,13 @@ public class SSSceneManager : MonoBehaviour
 	private IEnumerator IEMenu(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
 	{
 		// Common
-		yield return StartCoroutine(IECommon(sn, -1, 0.7f, data, onActive, onDeactive, SceneType.MENU, false));
+		yield return StartCoroutine(IECommon(sn, -1, 0.6f, data, onActive, onDeactive, SceneType.MENU, false));
 	}
 
 	private IEnumerator IESubScreen(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
 	{
 		// Common
-		yield return StartCoroutine(IECommon(sn, -2, 0.4f, data, onActive, onDeactive, SceneType.SUB_SCREEN, false));
+		yield return StartCoroutine(IECommon(sn, -2, 0.3f, data, onActive, onDeactive, SceneType.SUB_SCREEN, false));
 	}
 
 	private IEnumerator IEClose(bool immediate)
@@ -915,14 +1014,5 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 	#endregion
-
-	#if UNITY_EDITOR || UNITY_ANDROID
-	private void Update()
-	{
-		if (Input.GetKeyDown (KeyCode.Escape)) 
-		{
-			Close();
-		}
-	}
-	#endif
+	
 }

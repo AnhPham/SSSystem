@@ -8,7 +8,7 @@ using System.Collections;
 
 public class SSRoot : MonoBehaviour 
 {
-	private void Start()
+	protected virtual void Start()
 	{
 		CameraSetting ();
 	}

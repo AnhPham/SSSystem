@@ -59,7 +59,11 @@ public class SceneManagerTutorial : SSSceneManager
 		{
 			if (cam.cullingMask != (1 << LayerMask.NameToLayer ("Tutorial"))) 
 			{
-				Camera tutCam = ((GameObject)Instantiate (cam.gameObject)).GetComponent<Camera> ();
+				GameObject c = new GameObject (cam.name + "Tutorial");
+				Camera tutCam = c.AddComponent<Camera> ();
+
+				tutCam.CopyFrom (cam);
+
 				tutCam.transform.parent = cam.transform.parent;
 				tutCam.cullingMask = (1 << LayerMask.NameToLayer ("Tutorial"));
 				tutCam.depth += 1000;
@@ -77,6 +81,6 @@ public class SceneManagerTutorial : SSSceneManager
 				Destroy (cam.gameObject);
 			}
 		}
-	}
+	}	
 	#endregion
 }
