@@ -53,7 +53,7 @@ public class SSSceneManager : MonoBehaviour
 	protected string m_LoadingSceneName;			// Loading scene name  (optional)
 
 	[SerializeField]
-	protected string m_FirstSceneName;				// First scene name  (require)
+	protected string m_FirstSceneName;				// First scene name  (optional)
 
 	//[SerializeField]
 	protected int m_SceneDistance = 5000;			// The distance of loaded scenes in Base Scene
@@ -400,10 +400,19 @@ public class SSSceneManager : MonoBehaviour
 	#region Private Function
 	private IEnumerator CreateLoadingsThenLoadFirstScene()
 	{
+		m_IsBusy = true;
+
 		yield return StartCoroutine (CreateLoadingBack ());
 		yield return StartCoroutine (CreateLoadingTop ());
 
-		Screen (m_FirstSceneName);
+		m_IsBusy = false;
+
+		if (!string.IsNullOrEmpty (m_FirstSceneName)) 
+		{
+			Screen (m_FirstSceneName);
+		}
+
+		Dequeue ();
 	}
 
 	private IEnumerator LoadScene(string sn)
