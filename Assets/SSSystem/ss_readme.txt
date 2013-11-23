@@ -8,9 +8,13 @@ http://anh-pham.appspot.com/sssystem/en/sssystem.pdf
 
 2. How to use (step by step): Hello World
 http://anh-pham.appspot.com/sssystem/en/sshello.pdf
+or:
+Offline document: Assets/SSSystem/Documents/sshello.pdf
 
 3. How to use (step by step): Advance
 http://anh-pham.appspot.com/sssystem/en/ssadvance.pdf
+or:
+Offline document: Assets/SSSystem/Documents/ssadvance.pdf
 
 4. Script Reference:
 http://anh-pham.appspot.com/sssystem/
