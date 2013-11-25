@@ -581,6 +581,8 @@ public class SSSceneManager : MonoBehaviour
 
 	private void UnlockTopScene()
 	{
+		if (!m_Dict.ContainsKey (m_Stack.Peek())) return;
+
 		// Unlock below scene
 		GameObject scene = m_Dict[m_Stack.Peek()];
 		OnUnlock(scene);
@@ -852,7 +854,6 @@ public class SSSceneManager : MonoBehaviour
 		if (an != null)
 		{
 			yield return null;
-			an.transform.localPosition = Vector3.zero;
 			an.PlayShow();
 			yield return new WaitForSeconds(an.TimeShow() + 0.1f);
 		}
@@ -931,11 +932,20 @@ public class SSSceneManager : MonoBehaviour
 			yield break;
 		}
 
-		// Stack pop
-		string sn = m_Stack.Pop();
+		// Active Empty shield
+		ShieldOn (m_Stack.Count - 1, 0);
 
-		// Deactive Scene Full
+		// Stack peek
+		string sn = m_Stack.Peek();
+
+		// Deactive Scene
 		yield return StartCoroutine( DeactiveSceneFull (sn, immediate));
+
+		// Deactive Empty shield
+		ShieldOff();
+
+		// Stack pop
+		sn = m_Stack.Pop();
 
 		// Focus back
 		if (m_Stack.Count > 0)

@@ -1,6 +1,13 @@
-SS-SYSTEM VERSION 1.0.4
+SS-SYSTEM VERSION 1.0.6
 
 RELEASE NOTES:
+
+Version 1.0.6
+- SSceneManager: Edited. Now not able to tap while scene animation is playing.
+- SSAnimation: Fixed bug.
+
+Version 1.0.5
+- SSSceneManager: 'First Scene Name' is optional now, Fix bug.
 
 Version 1.0.4
 - SSSceneManager: Add 'Loading Scene Name', Add 'First Scene Name', Fix bug.

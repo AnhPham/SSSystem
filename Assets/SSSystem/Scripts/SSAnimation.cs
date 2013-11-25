@@ -64,6 +64,8 @@ public class SSAnimation : MonoBehaviour
 			return;
 		}
 
+		transform.localPosition = Vector3.zero;
+
 		if (animation == null)
 		{
 			gameObject.AddComponent<Animation>();
