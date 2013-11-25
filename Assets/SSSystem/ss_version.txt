@@ -1,6 +1,10 @@
-SS-SYSTEM VERSION 1.0.6
+SS-SYSTEM VERSION 1.0.7
 
 RELEASE NOTES:
+
+Version 1.0.7:
+- SSAnimation: Fixed bug if animation is slide type.
+- Fixed all default animations.
 
 Version 1.0.6
 - SSceneManager: Edited. Now not able to tap while scene animation is playing.

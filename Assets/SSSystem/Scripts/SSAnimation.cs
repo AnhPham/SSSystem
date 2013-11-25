@@ -64,7 +64,7 @@ public class SSAnimation : MonoBehaviour
 			return;
 		}
 
-		transform.localPosition = Vector3.zero;
+		//transform.localPosition = Vector3.zero;
 
 		if (animation == null)
 		{
