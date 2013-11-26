@@ -634,11 +634,11 @@ public class SSSceneManager : MonoBehaviour
 		// Resort camera list by deactive then active again any camera (For NGUI Camera)
 		if (cams.Count > 0) 
 		{
-			Component uicam = cams [0].gameObject.GetComponent ("UICamera");
+			MonoBehaviour uicam = cams [0].gameObject.GetComponent ("UICamera") as MonoBehaviour;
 			if (uicam != null) 
 			{
-				uicam.GetType ().GetField ("enabled").SetValue (uicam, false);
-				uicam.GetType ().GetField ("enabled").SetValue (uicam, true);
+				uicam.enabled = false;
+				uicam.enabled = true;
 			}
 		}
 	}
