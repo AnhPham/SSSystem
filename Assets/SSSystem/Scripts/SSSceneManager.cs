@@ -1,6 +1,5 @@
 ﻿/**
- * Created by Anh Pham on 2013/11/13
- * Copyright (c) Anh Pham. All rights reserved.
+ * Created by Anh Pham (anhpt.csit@gmail.com) on 2013/11/13
  */
 
 using UnityEngine;
@@ -635,8 +634,12 @@ public class SSSceneManager : MonoBehaviour
 		// Resort camera list by deactive then active again any camera (For NGUI Camera)
 		if (cams.Count > 0) 
 		{
-			cams [0].gameObject.SetActive (false);
-			cams [0].gameObject.SetActive (true);
+			Component uicam = cams [0].gameObject.GetComponent ("UICamera");
+			if (uicam != null) 
+			{
+				uicam.GetType ().GetField ("enabled").SetValue (uicam, false);
+				uicam.GetType ().GetField ("enabled").SetValue (uicam, true);
+			}
 		}
 	}
 
