@@ -1,9 +1,8 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/SSSystem/Scripts/SSSceneManager.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="../../Projects/Kayac/Unity3D/MTemplate 2013-11-26 2135/Assets/CasualGame/Scenes/1_TopScene/Script/TopSceneController.cs">
     <Files>
-      <File FileName="Assets/SSSystem/Demos/Scripts/SSSceneManagerExtend/SceneManagerTutorial.cs" Line="5" Column="51" />
-      <File FileName="Assets/SSSystem/Scripts/SSSceneManager.cs" Line="682" Column="30" />
+      <File FileName="../../Projects/Kayac/Unity3D/MTemplate 2013-11-26 2135/Assets/CasualGame/Scenes/1_TopScene/Script/TopSceneController.cs" Line="24" Column="70" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

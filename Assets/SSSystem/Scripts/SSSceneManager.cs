@@ -1,5 +1,5 @@
 ﻿/**
- * Created by Anh Pham (anhpt.csit@gmail.com) on 2013/11/13
+ * Created by Anh Pham on 2013/11/13
  */
 
 using UnityEngine;
@@ -17,7 +17,8 @@ public enum SceneType
 	SUB_SCREEN,
 	POPUP,
 	MENU,
-	CLOSE
+	CLOSE,
+	RESET
 }
 
 public class SceneData
@@ -53,6 +54,9 @@ public class SSSceneManager : MonoBehaviour
 
 	[SerializeField]
 	protected string m_FirstSceneName;				// First scene name  (optional)
+
+	[SerializeField]
+	protected float m_DefaultShieldAlpha = 0.25f;	// Default shield alpha  ( from 0 to 1 )
 
 	//[SerializeField]
 	protected int m_SceneDistance = 5000;			// The distance of loaded scenes in Base Scene
@@ -123,6 +127,53 @@ public class SSSceneManager : MonoBehaviour
 		{
 			string p = m_Stack.Pop();
 			DeactiveScene(p);
+			ShieldOff();
+		}
+
+		// Remove current sub
+		if (m_Sub != null)
+		{
+			DeactiveScene(m_Sub.name);
+			m_Sub = null;
+		}
+
+		StartCoroutine(IEScreen(sn, data, onActive, onDeactive));
+	}
+
+	/// <summary>
+	/// Reset a main-scene. All sub-scenes or popups which are showing will be deactive.
+	/// </summary>
+	/// <param name="sceneName">Scene name.</param>
+	/// <param name="data">Data type is object type, allows any object.</param>
+	/// <param name="onActive">OnActive callback.</param>
+	/// <param name="onDeactive">OnDeactive callback.</param>
+	public void ResetScreen(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		string sn = sceneName;
+
+		if (m_IsBusy) 
+		{
+			Enqueue(sn, data, onActive, onDeactive, SceneType.SCREEN);
+			return;
+		}
+
+		if (!IsSameScreen(sn)) 
+		{
+			Dequeue();
+			return;
+		}
+
+		m_IsBusy = true;
+
+		// Remove from stack and deactive
+		while (m_Stack.Count > 0)
+		{
+			string p = m_Stack.Pop();
+
+			bool isScreen = (m_Stack.Count == 1);
+			bool isForceDestroy = isScreen;
+
+			DeactiveScene(p, isForceDestroy);
 			ShieldOff();
 		}
 
@@ -431,7 +482,7 @@ public class SSSceneManager : MonoBehaviour
 		m_Dict[sn].SetActive(true);
 	}
 
-	private void DeactiveScene(string sn)
+	private void DeactiveScene(string sn, bool forceDestroy = false)
 	{
 		bool isCache = true;
 
@@ -444,7 +495,7 @@ public class SSSceneManager : MonoBehaviour
 			isCache = ct.IsCache;
 		}
 
-		if (!isCache)
+		if (!isCache || forceDestroy)
 		{
 			m_Dict.Remove(sn);
 			OnSceneUnload (sc);
@@ -468,7 +519,8 @@ public class SSSceneManager : MonoBehaviour
 			if (an != null)
 			{
 				an.PlayHide();
-				yield return new WaitForSeconds(an.TimeHide() + 0.1f);
+				//yield return new WaitForSeconds(an.TimeHide() + 0.1f);
+				yield return StartCoroutine (Pause (an.TimeHide() + 0.1f));
 			}
 		}
 
@@ -526,7 +578,7 @@ public class SSSceneManager : MonoBehaviour
 
 	private void ShieldOn(int i)
 	{
-		ShieldOn (i, 0.25f);
+		ShieldOn (i, m_DefaultShieldAlpha);
 	}
 
 	private void ShieldOn(int i, float alpha)
@@ -634,12 +686,8 @@ public class SSSceneManager : MonoBehaviour
 		// Resort camera list by deactive then active again any camera (For NGUI Camera)
 		if (cams.Count > 0) 
 		{
-			MonoBehaviour uicam = cams [0].gameObject.GetComponent ("UICamera") as MonoBehaviour;
-			if (uicam != null) 
-			{
-				uicam.enabled = false;
-				uicam.enabled = true;
-			}
+			cams [0].gameObject.SetActive (false);
+			cams [0].gameObject.SetActive (true);
 		}
 	}
 
@@ -858,7 +906,8 @@ public class SSSceneManager : MonoBehaviour
 		{
 			yield return null;
 			an.PlayShow();
-			yield return new WaitForSeconds(an.TimeShow() + 0.1f);
+			//yield return new WaitForSeconds(an.TimeShow() + 0.1f);
+			yield return StartCoroutine (Pause (an.TimeShow () + 0.1f));
 		}
 
 		// Deactive Empty Shield
@@ -989,6 +1038,9 @@ public class SSSceneManager : MonoBehaviour
 				break;
 			case SceneType.CLOSE:
 				break;
+			case SceneType.RESET:
+				HideLoadingBack ();
+				break;
 			default:
 				break;
 		}
@@ -1033,6 +1085,18 @@ public class SSSceneManager : MonoBehaviour
 		case SceneType.CLOSE:
 				Close((bool)sd.Data);
 				break;
+		case SceneType.RESET:
+				ResetScreen(sd.SceneName, sd.Data, sd.OnActive, sd.OnDeactive);
+				break;
+		}
+	}
+
+	private IEnumerator Pause(float time)
+	{
+		float pauseEndTime = Time.realtimeSinceStartup + time;
+		while (Time.realtimeSinceStartup < pauseEndTime)
+		{
+			yield return 0;
 		}
 	}
 	#endregion

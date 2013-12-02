@@ -1,6 +1,13 @@
-SS-SYSTEM VERSION 1.0.7
+SS-SYSTEM VERSION 1.0.9
 
 RELEASE NOTES:
+
+Version 1.0.9:
+- SSSceneManager: Ignore Time Scale.
+
+Version 1.0.8:
+- SSSceneManager: Add public function ResetScreen.
+- SSSceneManager: Add Default Shield Alpha
 
 Version 1.0.7:
 - SSAnimation: Fixed bug if animation is slide type.

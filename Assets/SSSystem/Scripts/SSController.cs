@@ -1,5 +1,5 @@
 ﻿/**
- * Created by Anh Pham (anhpt.csit@gmail.com) on 2013/11/13
+ * Created by Anh Pham on 2013/11/13
  */
 
 using UnityEngine;

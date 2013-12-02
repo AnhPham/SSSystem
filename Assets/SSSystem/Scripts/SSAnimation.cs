@@ -1,5 +1,5 @@
 ﻿/**
- * Created by Anh Pham (anhpt.csit@gmail.com) on 2013/11/13
+ * Created by Anh Pham on 2013/11/13
  */
 
 using UnityEngine;
@@ -12,6 +12,14 @@ public class SSAnimation : MonoBehaviour
 
 	[SerializeField]
 	private AnimationClip m_HideClip;
+
+	float m_TimeAtLastFrame = 0F;
+	float m_TimeAtCurrentFrame = 0F;
+	float m_DeltaTime = 0F;
+	float m_AccumTime = 0F;
+
+	AnimationState m_CurrState;
+	bool m_IsPlaying = false;
 
 	public float TimeShow()
 	{
@@ -63,8 +71,6 @@ public class SSAnimation : MonoBehaviour
 			return;
 		}
 
-		//transform.localPosition = Vector3.zero;
-
 		if (animation == null)
 		{
 			gameObject.AddComponent<Animation>();
@@ -78,6 +84,39 @@ public class SSAnimation : MonoBehaviour
 		}
 
 		animation.clip = anim;
-		animation.Play(anim.name);
+		PlayAnimation (animation, anim.name);
+		//animation.Play (anim.name);
+	}
+
+	void Update()
+	{
+		m_TimeAtCurrentFrame = UnityEngine.Time.realtimeSinceStartup;
+		m_DeltaTime = m_TimeAtCurrentFrame - m_TimeAtLastFrame;
+		m_TimeAtLastFrame = m_TimeAtCurrentFrame; 
+
+		if(m_IsPlaying) AnimationUpdate();
+	}
+
+	void AnimationUpdate()
+	{
+		m_AccumTime += m_DeltaTime;
+		m_CurrState.normalizedTime = m_AccumTime/m_CurrState.length; 
+		if(m_AccumTime >= m_CurrState.length) 
+		{
+			m_CurrState.enabled = false;
+			m_IsPlaying = false;
+		}
+	}
+
+	public void PlayAnimation(Animation anim, string clip)
+	{
+		m_AccumTime = 0F;
+		m_CurrState = anim[clip];
+		m_CurrState.weight = 1;
+		m_CurrState.blendMode = AnimationBlendMode.Blend;
+		m_CurrState.wrapMode = WrapMode.Once;
+		m_CurrState.normalizedTime = 0;
+		m_CurrState.enabled = true;
+		m_IsPlaying = true;
 	}
 }
