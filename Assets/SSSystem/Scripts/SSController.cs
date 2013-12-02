@@ -102,4 +102,12 @@ public class SSController : MonoBehaviour
 	{
 		IsLock = false;
 	}
+
+	/// <summary>
+	/// Raises the key back click event (for android)
+	/// </summary>
+	public virtual void OnKeyBack()
+	{
+		SSSceneManager.Instance.Close ();
+	}
 }

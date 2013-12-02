@@ -4,6 +4,7 @@ RELEASE NOTES:
 
 Version 1.0.9:
 - SSSceneManager: Ignore Time Scale.
+- SSController: Add OnKeyBack event.
 
 Version 1.0.8:
 - SSSceneManager: Add public function ResetScreen.

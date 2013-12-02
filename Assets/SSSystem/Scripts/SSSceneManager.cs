@@ -438,9 +438,20 @@ public class SSSceneManager : MonoBehaviour
 	#if UNITY_EDITOR || UNITY_ANDROID
 	protected virtual void Update()
 	{
-		if (Input.GetKeyDown (KeyCode.Escape)) 
+		if (Input.GetKeyDown (KeyCode.Escape) && !m_IsBusy) 
 		{
-			Close();
+			string sn = StackTop ();
+			GameObject sc = m_Dict [sn];
+			SSController ct = sc.GetComponentInChildren<SSController>();
+
+			if (ct != null) 
+			{
+				ct.OnKeyBack ();
+			} 
+			else 
+			{
+				Close ();
+			}
 		}
 	}
 	#endif
