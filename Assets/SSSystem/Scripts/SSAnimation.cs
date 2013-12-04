@@ -88,7 +88,7 @@ public class SSAnimation : MonoBehaviour
 		//animation.Play (anim.name);
 	}
 
-	void Update()
+	protected void Update()
 	{
 		m_TimeAtCurrentFrame = UnityEngine.Time.realtimeSinceStartup;
 		m_DeltaTime = m_TimeAtCurrentFrame - m_TimeAtLastFrame;
@@ -97,7 +97,7 @@ public class SSAnimation : MonoBehaviour
 		if(m_IsPlaying) AnimationUpdate();
 	}
 
-	void AnimationUpdate()
+	protected void AnimationUpdate()
 	{
 		m_AccumTime += m_DeltaTime;
 		m_CurrState.normalizedTime = m_AccumTime/m_CurrState.length; 
@@ -108,7 +108,7 @@ public class SSAnimation : MonoBehaviour
 		}
 	}
 
-	public void PlayAnimation(Animation anim, string clip)
+	protected void PlayAnimation(Animation anim, string clip)
 	{
 		m_AccumTime = 0F;
 		m_CurrState = anim[clip];
