@@ -99,13 +99,19 @@ public class SSAnimation : MonoBehaviour
 
 	protected void AnimationUpdate()
 	{
-		m_AccumTime += m_DeltaTime;
-		m_CurrState.normalizedTime = m_AccumTime/m_CurrState.length; 
-		if(m_AccumTime >= m_CurrState.length) 
+		if(m_IsPlaying == false) 
 		{
 			m_CurrState.enabled = false;
+			return;
+		}
+
+		m_AccumTime += m_DeltaTime;
+		if (m_AccumTime >= m_CurrState.length) 
+		{
+			m_AccumTime = m_CurrState.length;
 			m_IsPlaying = false;
 		}
+		m_CurrState.normalizedTime = m_AccumTime/m_CurrState.length; 
 	}
 
 	protected void PlayAnimation(Animation anim, string clip)

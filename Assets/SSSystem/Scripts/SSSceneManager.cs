@@ -530,8 +530,7 @@ public class SSSceneManager : MonoBehaviour
 			if (an != null)
 			{
 				an.PlayHide();
-				//yield return new WaitForSeconds(an.TimeHide() + 0.1f);
-				yield return StartCoroutine (Pause (an.TimeHide() + 0.1f));
+				yield return StartCoroutine (Pause (an.TimeHide()));
 			}
 		}
 
@@ -694,11 +693,16 @@ public class SSSceneManager : MonoBehaviour
 			c++;
 		}
 
-		// Resort camera list by deactive then active again any camera (For NGUI Camera)
+		// Re-sort camera list For NGUI
 		if (cams.Count > 0) 
 		{
-			cams [0].gameObject.SetActive (false);
-			cams [0].gameObject.SetActive (true);
+			MonoBehaviour uicam = cams [0].GetComponent ("UICamera") as MonoBehaviour;
+
+			if (uicam != null) 
+			{
+				uicam.enabled = false;
+				uicam.enabled = true;
+			}
 		}
 	}
 
@@ -917,8 +921,7 @@ public class SSSceneManager : MonoBehaviour
 		{
 			yield return null;
 			an.PlayShow();
-			//yield return new WaitForSeconds(an.TimeShow() + 0.1f);
-			yield return StartCoroutine (Pause (an.TimeShow () + 0.1f));
+			yield return StartCoroutine (Pause (an.TimeShow ()));
 		}
 
 		// Deactive Empty Shield
@@ -1109,6 +1112,7 @@ public class SSSceneManager : MonoBehaviour
 		{
 			yield return 0;
 		}
+		yield return 0;
 	}
 	#endregion
 	
