@@ -4,7 +4,7 @@ RELEASE NOTES:
 
 Version 1.0.10
 - SSAnimation: Fixed bug which animation not complete fine.
-- SSSceneManager: Optimized.
+- SSSceneManager: Add CUSTOM to Bgm Enum.
 
 Version 1.0.9:
 - SSSceneManager: Ignore Time Scale, fixed a bug which disable camera.

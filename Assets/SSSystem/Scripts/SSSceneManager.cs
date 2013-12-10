@@ -41,9 +41,27 @@ public class SceneData
 
 public enum Bgm
 {
+	/// <summary>
+	/// When the scene changed, turn off BGM.
+	/// </summary>
 	NONE,
+
+	/// <summary>
+	/// When the scene changed, BGM will not be changed.
+	/// </summary>
 	SAME,
-	PLAY
+
+	/// <summary>
+	/// When the scene changed, play a new BGM.
+	/// </summary>
+	PLAY,
+
+	/// <summary>
+	/// When the scene changed, turn off BGM.
+	/// You will play BGM by your own code.
+	/// You must to set the BgmName for SSController.
+	/// </summary>
+	CUSTOM
 }
 
 public class SSSceneManager : MonoBehaviour 
@@ -761,6 +779,10 @@ public class SSSceneManager : MonoBehaviour
 			case Bgm.SAME:
 				ctrl.CurrentBgm = curBgm;
 				break;
+			case Bgm.CUSTOM:
+				StopBGM();
+				ctrl.CurrentBgm = ctrl.BgmName;
+				break;
 		}
 	}
 
@@ -774,6 +796,7 @@ public class SSSceneManager : MonoBehaviour
 
 			case Bgm.PLAY:
 			case Bgm.SAME:
+			case Bgm.CUSTOM:
 				if (!string.IsNullOrEmpty(ctrl.CurrentBgm) )
 				{
 					PlayBGM(ctrl.CurrentBgm);
@@ -1020,8 +1043,8 @@ public class SSSceneManager : MonoBehaviour
 			SSController c = m_Dict[s].GetComponentInChildren<SSController>();
 			if (c != null)
 			{
-				c.OnFocusBack();
 				BgmSceneClose(c);
+				c.OnFocusBack();
 			}
 		}
 

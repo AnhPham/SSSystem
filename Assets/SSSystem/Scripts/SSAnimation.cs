@@ -20,6 +20,7 @@ public class SSAnimation : MonoBehaviour
 
 	AnimationState m_CurrState;
 	bool m_IsPlaying = false;
+	bool m_IsEndAnim = false;
 
 	public float TimeShow()
 	{
@@ -85,7 +86,6 @@ public class SSAnimation : MonoBehaviour
 
 		animation.clip = anim;
 		PlayAnimation (animation, anim.name);
-		//animation.Play (anim.name);
 	}
 
 	protected void Update()
@@ -99,9 +99,10 @@ public class SSAnimation : MonoBehaviour
 
 	protected void AnimationUpdate()
 	{
-		if(m_IsPlaying == false) 
+		if (m_IsEndAnim == true) 
 		{
 			m_CurrState.enabled = false;
+			m_IsPlaying = false;
 			return;
 		}
 
@@ -109,7 +110,7 @@ public class SSAnimation : MonoBehaviour
 		if (m_AccumTime >= m_CurrState.length) 
 		{
 			m_AccumTime = m_CurrState.length;
-			m_IsPlaying = false;
+			m_IsEndAnim = true;
 		}
 		m_CurrState.normalizedTime = m_AccumTime/m_CurrState.length; 
 	}
@@ -124,5 +125,6 @@ public class SSAnimation : MonoBehaviour
 		m_CurrState.normalizedTime = 0;
 		m_CurrState.enabled = true;
 		m_IsPlaying = true;
+		m_IsEndAnim = false;
 	}
 }
