@@ -318,7 +318,7 @@ public class SSSceneManager : MonoBehaviour
 	/// Shows the loading indicator
 	/// </summary>
 	/// <param name="alpha">Alpha of shield</param>
-	public void ShowLoading(float alpha = 0.2f)
+	public void ShowLoading(float alpha = 0.5f)
 	{
 		if (m_Loading == null) return;
 
@@ -329,16 +329,18 @@ public class SSSceneManager : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Hides the loading indicator.
+	/// Hides the loading indicator. If you called n-times ShowLoading, you must to call n-times HideLoading to hide.
 	/// </summary>
-	public void HideLoading()
+	/// <param name="isForceHide">If set to <c>true</c> is force hide without counting.</param>
+	public void HideLoading(bool isForceHide = false)
 	{
 		if (m_Loading == null || !m_Loading.activeInHierarchy) return;
 
 		m_LoadingCount--;
 		
-		if (m_LoadingCount == 0) 
+		if (m_LoadingCount == 0 || isForceHide) 
 		{
+			m_LoadingCount = 0;
 			ShieldTopOff ();
 			m_Loading.SetActive (false);
 		}
@@ -576,11 +578,11 @@ public class SSSceneManager : MonoBehaviour
 		return sh;
 	}
 
-	private void ShieldTopOn(float alpha = 0.2f)
+	private void ShieldTopOn(float alpha)
 	{
 		if (m_ShieldTop == null) 
 		{
-			m_ShieldTop = CreateShield (m_ShieldTopIndex);
+			m_ShieldTop = CreateShield (m_ShieldTopIndex-1);
 		} else 
 		{
 			m_ShieldTop.SetActive (true);

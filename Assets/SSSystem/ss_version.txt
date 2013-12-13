@@ -1,6 +1,10 @@
-SS-SYSTEM VERSION 1.0.10
+SS-SYSTEM VERSION 1.0.11
 
 RELEASE NOTES:
+
+Version 1.0.11
+- SSSceneManager: Fixed bug top shield, Changed default alpha top shield to 0.5
+- SSSceneManager: Add function HideLoading(bool isForceHide = false)
 
 Version 1.0.10
 - SSAnimation: Fixed bug which animation not complete fine.
