@@ -1,5 +1,6 @@
 ﻿/**
  * Created by Anh Pham on 2013/11/13
+ * Email: anhpt.csit@gmail.com
  */
 
 using UnityEngine;
@@ -157,7 +158,7 @@ public class SSSceneManager : MonoBehaviour
 
 		StartCoroutine(IEScreen(sn, data, onActive, onDeactive));
 	}
-
+	
 	/// <summary>
 	/// Reset a main-scene. All sub-scenes or popups which are showing will be deactive.
 	/// </summary>
@@ -165,44 +166,53 @@ public class SSSceneManager : MonoBehaviour
 	/// <param name="data">Data type is object type, allows any object.</param>
 	/// <param name="onActive">OnActive callback.</param>
 	/// <param name="onDeactive">OnDeactive callback.</param>
+	[System.Obsolete("ResetScreen is deprecated, please use Reset instead.")]
 	public void ResetScreen(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
 	{
-		string sn = sceneName;
+		Reset (data, onActive, onDeactive);
+	}
 
-		if (m_IsBusy) 
+	/// <summary>
+	/// Reset the current main-scene. All sub-scenes or popups which are showing will be deactive.
+	/// </summary>
+	/// <param name="data">Data type is object type, allows any object.</param>
+	/// <param name="onActive">OnActive callback.</param>
+	/// <param name="onDeactive">OnDeactive callback.</param>
+	public void Reset(object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		string sn = StackBottom ();
+
+		if (!string.IsNullOrEmpty (sn)) 
 		{
-			Enqueue(sn, data, onActive, onDeactive, SceneType.SCREEN);
-			return;
+			if (m_IsBusy) 
+			{
+				Enqueue (sn, data, onActive, onDeactive, SceneType.RESET);
+				return;
+			}
+
+			m_IsBusy = true;
+
+			// Remove from stack and deactive
+			while (m_Stack.Count > 0)
+			{
+				string p = m_Stack.Pop();
+
+				bool isScreen = (m_Stack.Count == 1);
+				bool isForceDestroy = isScreen;
+
+				DeactiveScene(p, isForceDestroy);
+				ShieldOff();
+			}
+
+			// Remove current sub
+			if (m_Sub != null)
+			{
+				DeactiveScene(m_Sub.name);
+				m_Sub = null;
+			}
+
+			StartCoroutine(IEScreen(sn, data, onActive, onDeactive));
 		}
-
-		if (!IsSameScreen(sn)) 
-		{
-			Dequeue();
-			return;
-		}
-
-		m_IsBusy = true;
-
-		// Remove from stack and deactive
-		while (m_Stack.Count > 0)
-		{
-			string p = m_Stack.Pop();
-
-			bool isScreen = (m_Stack.Count == 1);
-			bool isForceDestroy = isScreen;
-
-			DeactiveScene(p, isForceDestroy);
-			ShieldOff();
-		}
-
-		// Remove current sub
-		if (m_Sub != null)
-		{
-			DeactiveScene(m_Sub.name);
-			m_Sub = null;
-		}
-
-		StartCoroutine(IEScreen(sn, data, onActive, onDeactive));
 	}
 
 	/// <summary>
@@ -546,7 +556,7 @@ public class SSSceneManager : MonoBehaviour
 		// Play Animation
 		if (!immediate)
 		{
-			SSAnimation an = m_Dict[sn].GetComponentInChildren<SSAnimation>();
+			SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
 			if (an != null)
 			{
 				an.PlayHide();
@@ -893,7 +903,7 @@ public class SSSceneManager : MonoBehaviour
 		}
 
 		// Animation
-		SSAnimation an = null;
+		SSMotion an = null;
 
 		// Load or active
 		if (m_Dict.ContainsKey(sn))
@@ -901,9 +911,12 @@ public class SSSceneManager : MonoBehaviour
 			ActiveScene(sn);
 
 			// Animation
-			an = m_Dict[sn].GetComponentInChildren<SSAnimation>();
+			an = m_Dict[sn].GetComponentInChildren<SSMotion>();
 			if (an != null)
 			{
+				// We should bring this scene to somewhere far when re-active it.
+				// Then the animation will automatically bring it back at next frame.
+				// This trick remove flicker at the first frame.
 				an.transform.localPosition = new Vector3(99999, 0, 0);
 				an.transform.localScale = Vector3.one;
 			}
@@ -941,7 +954,7 @@ public class SSSceneManager : MonoBehaviour
 		ShieldOn (ip, 0);
 
 		// Play Animation
-		if (an == null) an = m_Dict[sn].GetComponentInChildren<SSAnimation>();
+		if (an == null) an = m_Dict[sn].GetComponentInChildren<SSMotion>();
 		if (an != null)
 		{
 			yield return null;
@@ -1125,7 +1138,7 @@ public class SSSceneManager : MonoBehaviour
 				Close((bool)sd.Data);
 				break;
 		case SceneType.RESET:
-				ResetScreen(sd.SceneName, sd.Data, sd.OnActive, sd.OnDeactive);
+				Reset(sd.Data, sd.OnActive, sd.OnDeactive);
 				break;
 		}
 	}
@@ -1139,6 +1152,7 @@ public class SSSceneManager : MonoBehaviour
 		}
 		yield return 0;
 	}
+	
 	#endregion
 	
 }

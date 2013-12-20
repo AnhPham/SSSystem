@@ -1,6 +1,10 @@
-SS-SYSTEM VERSION 1.0.11
+SS-SYSTEM VERSION 1.1.0
 
 RELEASE NOTES:
+
+Version 1.1.0
+- SSSceneManager: ResetScreen is deprecated, please use Reset instead. Fixed a bug when Reset.
+- SSMotion: Add SSMotion. SSAnimation extends SSMotion. Now you can extend SSMotion to make your own animation scripts, which use other tween libraries. Don't forget ignore time scale of tween!
 
 Version 1.0.11
 - SSSceneManager: Fixed bug top shield, Changed default alpha top shield to 0.5

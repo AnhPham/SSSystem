@@ -1,11 +1,12 @@
 ﻿/**
  * Created by Anh Pham on 2013/11/13
+ * Email: anhpt.csit@gmail.com
  */
 
 using UnityEngine;
 using System.Collections;
 
-public class SSAnimation : MonoBehaviour 
+public class SSAnimation : SSMotion 
 {
 	[SerializeField]
 	private AnimationClip m_ShowClip;
@@ -22,32 +23,67 @@ public class SSAnimation : MonoBehaviour
 	bool m_IsPlaying = false;
 	bool m_IsEndAnim = false;
 
-	public float TimeShow()
+	/// <summary>
+	/// Time of show - animation by second.
+	/// </summary>
+	/// <returns>Time show.</returns>
+	public override float TimeShow()
 	{
 		return Time(m_ShowClip);
 	}
 
-	public float TimeHide()
+	/// <summary>
+	/// Time of hide - animation by second.
+	/// </summary>
+	/// <returns>Time hide.</returns>
+	public override float TimeHide()
 	{
 		return Time(m_HideClip);
 	}
 
-	public void PlayShow()
+	/// <summary>
+	/// Play the the show - animation.
+	/// </summary>
+	public override void PlayShow()
 	{
 		Play(m_ShowClip);
 	}
 
-	public void PlayHide()
+	/// <summary>
+	/// Play the the hide - animation.
+	/// </summary>
+	public override void PlayHide()
 	{
 		Play(m_HideClip);
 	}
 
-	protected virtual void Awake()
+	/// <summary>
+	/// Update function.
+	/// </summary>
+	protected override void Update()
 	{
+		m_TimeAtCurrentFrame = UnityEngine.Time.realtimeSinceStartup;
+		m_DeltaTime = m_TimeAtCurrentFrame - m_TimeAtLastFrame;
+		m_TimeAtLastFrame = m_TimeAtCurrentFrame; 
+
+		if(m_IsPlaying) AnimationUpdate();
+	}
+
+	/// <summary>
+	/// Awake function.
+	/// </summary>
+	protected override void Awake()
+	{
+		// We should bring this scene to somewhere far when it awake.
+		// Then the animation will automatically bring it back at next frame.
+		// This trick remove flicker at the first frame.
 		transform.localPosition = new Vector3(99999, 0, 0);
 	}
 
-	protected virtual void Start()
+	/// <summary>
+	/// Start function.
+	/// </summary>
+	protected override void Start()
 	{
 		if (SSSceneManager.Instance == null)
 		{
@@ -55,7 +91,7 @@ public class SSAnimation : MonoBehaviour
 		}
 	}
 
-	protected float Time(AnimationClip anim)
+	private float Time(AnimationClip anim)
 	{
 		if (anim == null) 
 		{
@@ -65,7 +101,7 @@ public class SSAnimation : MonoBehaviour
 		return anim.length;
 	}
 
-	protected void Play(AnimationClip anim)
+	private void Play(AnimationClip anim)
 	{
 		if (anim == null)
 		{
@@ -88,16 +124,7 @@ public class SSAnimation : MonoBehaviour
 		PlayAnimation (animation, anim.name);
 	}
 
-	protected void Update()
-	{
-		m_TimeAtCurrentFrame = UnityEngine.Time.realtimeSinceStartup;
-		m_DeltaTime = m_TimeAtCurrentFrame - m_TimeAtLastFrame;
-		m_TimeAtLastFrame = m_TimeAtCurrentFrame; 
-
-		if(m_IsPlaying) AnimationUpdate();
-	}
-
-	protected void AnimationUpdate()
+	private void AnimationUpdate()
 	{
 		if (m_IsEndAnim == true) 
 		{
@@ -115,7 +142,7 @@ public class SSAnimation : MonoBehaviour
 		m_CurrState.normalizedTime = m_AccumTime/m_CurrState.length; 
 	}
 
-	protected void PlayAnimation(Animation anim, string clip)
+	private void PlayAnimation(Animation anim, string clip)
 	{
 		m_AccumTime = 0F;
 		m_CurrState = anim[clip];
