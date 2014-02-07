@@ -24,7 +24,8 @@ public class SSController : MonoBehaviour
 	#endregion
 
 	#region Protected Member
-	public bool 	IsLock { get; private set; }
+	public bool 	IsLock 		{ get; private set; }
+	public bool 	IsStarted 	{ get; private set; }
 	#endregion
 
 	/// <summary>
@@ -39,10 +40,43 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
+	/// If you want to override this Start() function. Don't forget call base.Start() in it.
+	/// </summary>
+	public virtual void Start()
+	{
+		if (SSSceneManager.Instance == null)
+		{
+			StartCoroutine (OnStartWithoutSceneManager ());
+		}
+
+		OnEnableFS ();
+		IsStarted = true;
+	}
+
+	/// <summary>
+	/// This event will be raised at start time you play the scene if your scene doesn't have SSSceneManager. Convenient for testing.
+	/// </summary>
+	public virtual IEnumerator OnStartWithoutSceneManager()
+	{
+		yield return 0;
+	}
+
+	/// <summary>
+	/// FS means 'First in Start'.  The first call of OnEnable() is right after Awake(). The first call of OnEnableFS() is in Start().
+	/// </summary>
+	public virtual void OnEnableFS()
+	{
+	}
+
+	/// <summary>
 	/// Start to show
 	/// </summary>
 	public virtual void OnEnable()
 	{
+		if (IsStarted)
+		{
+			OnEnableFS ();
+		}
 	}
 
 	/// <summary>

@@ -1,6 +1,21 @@
-SS-SYSTEM VERSION 1.1.0
+SS-SYSTEM VERSION 1.2.0
 
 RELEASE NOTES:
+
+Version 1.2.0
+(IMPORTANT)  You must to edit all Start() function of scripts which inherit SSController.
+.FROM : void Start() { // Your code } 
+.TO   : protected override void Start() { base.Start(); // Your code }
+
+- SSController: Start() is virtual from now.
+- SSController: Add OnStartWithoutSceneManager() just for testing easier.
+- SSController: Add OnEnableFS(). FS means 'First in Start'. The first call of OnEnable() is right after Awake(). The first call of OnEnableFS() is in Start().
+- SSSceneManager: Add public function: LoadRes(string sceneName) and UnloadRes(string sceneName) for the scene which contains only resources.
+- SSSceneManager: Add virtual function OnFirstSceneLoad.
+- SSSceneManager: Add event onScreenStartChange(string sceneName).
+- SSSceneManager: Fixed a bug which OnHide() is not be call when we call Screen().
+- SSRootScale: Add Anchor TOP/CENTER/BOTTOM. Fixed bug.
+- Demo: Deleted Resources folder, Add Sound folder.
 
 Version 1.1.0
 - SSSceneManager: ResetScreen is deprecated, please use Reset instead. Fixed a bug when Reset.

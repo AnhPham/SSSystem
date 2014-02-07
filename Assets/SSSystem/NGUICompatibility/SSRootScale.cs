@@ -3,75 +3,62 @@ using System.Collections;
 using System.Collections.Generic;
 
 [ExecuteInEditMode]
-public class SSRootScale : SSRoot 
+public class SSRootScale : SSRoot
 {
 	#region Enum
-	//アスペクト比
-	public enum ASPECT{
-		_1x2,		// 縦持ち 1:2
-		_9x16,		// 縦持ち iPhone4inch (iPhone5)
-		_2x3,		// 縦持ち iPhone3.5inch (iPhone4s以前)
-		_3x4,		// 縦持ち iPad
-		_1x1,		// 正方形
-		_4x3,		// 横持ち iPad
-		_3x2,		// 横持ち iPhone3.5inch (iPhone4s以前)
-		_16x9,		// 横持ち iPhone4inch (iPhone5)
-		_2x1,		// 横持ち 2:1
+	public enum SSAnchor
+	{
+		TOP,
+		CENTER,
+		BOTTOM
+	}
+
+	public enum ASPECT
+	{
+		_1x2,
+		_9x16,
+		_2x3,
+		_3x4,
+		_1x1,
+		_4x3,
+		_3x2,
+		_16x9,
+		_2x1,
 	};
 	#endregion
 
-
 	#region Serialize Field
-	float camera2DOrthographicSize = 1;
-
-	//ゲーム画面を画面中央ではなく、下にくっつける形にする。広告表示などのレイアウトに合わせるために
 	[SerializeField]
-	bool isAnchorBottom = false;
+	SSAnchor m_Anchor = SSAnchor.CENTER;
 
 	[SerializeField]
-	ASPECT defaultAspect = ASPECT._2x3;	//基本のアスペクト比
+	ASPECT defaultAspect = ASPECT._9x16;
 
 	[SerializeField]
-	ASPECT wideAspect = ASPECT._2x3;	//最も横長になった場合のアスペクト比
+	ASPECT wideAspect = ASPECT._2x3;
 
 	[SerializeField]
-	ASPECT nallowAspect = ASPECT._9x16;	//最も縦長になった場合のアスペクト比
+	ASPECT nallowAspect = ASPECT._9x16;
 
 	[SerializeField]
-	int defaultHeight = 960;
+	int defaultHeight = 1136;
 	#endregion
-
 
 	#region Private
 	Camera[] m_Cameras;
 	GameObject[] m_Roots;
+	Rect currentRect;
 
 	bool isChanged;
 
 	int currentHeight;
-	int currentWidth;
+	int prevDefaultHeight;
 
 	float currentAspectRatio;
 	float screenAspectRatio;
-	int prevDefaultHeight;
-
-	Rect currentRect;
+	float camera2DOrthographicSize = 1;
 	#endregion
 	
-
-	#region Public
-	public float GetRoot2DScale() { return 2.0f*this.camera2DOrthographicSize / currentHeight; }
-
-	public int DefaultHeight{ get { return defaultHeight; } }
-
-	public int DefaultWidth{ get { return (int)(defaultHeight*CalcAspectRatio(defaultAspect)); } }
-
-	public int CurrentHeight{ get { return currentHeight; } }
-
-	public int CurrentWidth{ get { return currentWidth; } }
-	#endregion
-
-
 	#region Private Function
 	protected override void Start()
 	{
@@ -81,148 +68,174 @@ public class SSRootScale : SSRoot
 		// Find all UIRoot in Scene
 		m_Roots = GetRoots ();
 
+		// Trick Root
+		TrickUIRoot ();
+
 		// Refresh
-		Refresh();
+		Refresh ();
 
 		// Update Scale
-		UpdateScale();
+		UpdateScale ();
 
 		// Base Start
 		base.Start ();
 	}
 
-	void Update()
+	private void TrickUIRoot()
 	{
-		if( !Mathf.Approximately( screenAspectRatio, 1.0f*Screen.width/Screen.height) )
+		foreach (GameObject root in m_Roots)
 		{
-			Refresh();
+			MonoBehaviour uiroot = root.GetComponent ("UIRoot") as MonoBehaviour;
+			if (uiroot != null)
+			{
+				uiroot.enabled = false;
+				uiroot.enabled = true;
+			}
 		}
 	}
 
-	void LateUpdate()
+	private void Update()
+	{
+		if (!Mathf.Approximately (screenAspectRatio, 1.0f * Screen.width / Screen.height))
+		{
+			Refresh ();
+		}
+	}
+
+	private void LateUpdate()
 	{
 		UpdateScale ();
 	}
 
-
-	void Refresh()
+	private void Refresh()
 	{
-		screenAspectRatio = 1.0f*Screen.width/Screen.height;
+		screenAspectRatio = 1.0f * Screen.width / Screen.height;
 
-		float defaultAspectRatio = CalcAspectRatio(defaultAspect);
-		float wideAspectRatio = CalcAspectRatio(wideAspect);
-		float nallowAspectRatio = CalcAspectRatio(nallowAspect);
+		float defaultAspectRatio = CalcAspectRatio (defaultAspect);
+		float wideAspectRatio = CalcAspectRatio (wideAspect);
+		float nallowAspectRatio = CalcAspectRatio (nallowAspect);
 
-		//スクリーンのアスペクト比から、ゲームのアスペクト比を決める
-		if( screenAspectRatio > wideAspectRatio ){
-			//アスペクト比が設定よりも横長
+		if (screenAspectRatio > wideAspectRatio)
+		{
 			currentAspectRatio = wideAspectRatio;
-		}else if( screenAspectRatio < nallowAspectRatio ){
-			//アスペクト比が設定よりも縦長
+		}
+		else if (screenAspectRatio < nallowAspectRatio)
+		{
 			currentAspectRatio = nallowAspectRatio;
-		}else{
-			//アスペクト比が設定の範囲内ならそのままスクリーンのアスペクト比を使う
+		}
+		else
+		{
 			currentAspectRatio = screenAspectRatio;
 		}
 
-		//ゲームの画面サイズを決める
-		if( currentAspectRatio < defaultAspectRatio ){
-			//ゲームのアスペクト比が、デフォルトのアスペクト比よりも縦長
-			currentHeight = (int)(defaultHeight*defaultAspectRatio/currentAspectRatio);
-		}else{
-			currentHeight = defaultHeight;
-		}
-		currentWidth = (int)(currentHeight*currentAspectRatio);
+		currentHeight = (int)(defaultHeight * defaultAspectRatio / currentAspectRatio);
 
 		float marginX = 0;
 		float marginY = 0;
-		//描画領域をクリップする
-		if( currentAspectRatio != screenAspectRatio ){
-			if( screenAspectRatio > currentAspectRatio ){
-				//スクリーンのほうが横長なので、左右をクリップ.
-				marginX = ( 1.0f - currentAspectRatio/screenAspectRatio )/2;
+
+		if (currentAspectRatio != screenAspectRatio)
+		{
+			if (screenAspectRatio > currentAspectRatio)
+			{
+				marginX = (1.0f - currentAspectRatio / screenAspectRatio) / 2;
 				marginY = 0;
 			}
-			else if( screenAspectRatio < currentAspectRatio ){
-				//スクリーンのほうが縦長なので、上下をクリップ.
+			else if (screenAspectRatio < currentAspectRatio)
+			{
 				marginX = 0;
-				marginY = ( 1.0f - screenAspectRatio/currentAspectRatio )/2;
+				marginY = (1.0f - screenAspectRatio / currentAspectRatio) / 2;
 			}
 		}
 
-		if( isAnchorBottom ){
-			currentRect = new Rect ( marginX, 0, 1- marginX*2, 1 - marginY*2 );
-		}else{
-			currentRect = new Rect ( marginX, marginY, 1- marginX*2, 1 - marginY*2 );
+		switch (m_Anchor)
+		{
+			case SSAnchor.BOTTOM:
+				currentRect = new Rect (marginX, 0, 1 - marginX * 2, 1 - marginY * 2);
+				break;
+			case SSAnchor.TOP:
+				currentRect = new Rect (marginX, marginY * 2, 1 - marginX * 2, 1 - marginY * 2);
+				break;
+			case SSAnchor.CENTER:
+				currentRect = new Rect (marginX, marginY, 1 - marginX * 2, 1 - marginY * 2);
+				break;
 		}
 
-		SetRects(currentRect);
+		SetRects (currentRect);
 	}
 
-	void SetRects( Rect rect )
+	private void SetRects(Rect rect)
 	{
-		foreach( Camera camera2d in m_Cameras ){
+		foreach (Camera camera2d in m_Cameras)
+		{
 			camera2d.rect = rect;
 			camera2d.orthographicSize = this.camera2DOrthographicSize;
 		}
 	}
 
-	float CalcAspectRatio( ASPECT aspect )
+	private float CalcAspectRatio(ASPECT aspect)
 	{
-		switch(aspect){
-		case ASPECT._1x2:
-			return 1.0f/2;
-		case ASPECT._9x16:
-			return 9.0f/16;
-		case ASPECT._2x3:
-			return 2.0f/3;
-		case ASPECT._3x4:
-			return 3.0f/4;
-		case ASPECT._1x1:
-			return 1;
-		case ASPECT._4x3:
-			return 4.0f/3;
-		case ASPECT._3x2:
-			return 3.0f/2;
-		case ASPECT._16x9:
-			return 16.0f/9;
-		case ASPECT._2x1:
-			return 2.0f;
-		default:
-			return 1;
+		switch (aspect)
+		{
+			case ASPECT._1x2:
+				return 1.0f / 2;
+			case ASPECT._9x16:
+				return 9.0f / 16;
+			case ASPECT._2x3:
+				return 2.0f / 3;
+			case ASPECT._3x4:
+				return 3.0f / 4;
+			case ASPECT._1x1:
+				return 1;
+			case ASPECT._4x3:
+				return 4.0f / 3;
+			case ASPECT._3x2:
+				return 3.0f / 2;
+			case ASPECT._16x9:
+				return 16.0f / 9;
+			case ASPECT._2x1:
+				return 2.0f;
+			default:
+				return 1;
 		}
 	}
 
-	//カメラの更新
-	void UpdateScale()
+	private void UpdateScale()
 	{
-		if (m_Roots == null) return;
+		if (m_Roots == null)
+			return;
 
-		float scale = this.GetRoot2DScale();
-		if (scale == Mathf.Infinity) return;
+		float scale = this.GetRoot2DScale ();
+		if (scale == Mathf.Infinity)
+			return;
 
 		foreach (GameObject r in m_Roots)
 		{
 			#if UNITY_EDITOR
+			r.GetComponent ("UIRoot").GetType ().GetField ("scalingStyle").SetValue (r.GetComponent ("UIRoot"), 1);
 			r.GetComponent ("UIRoot").GetType ().GetField ("manualHeight").SetValue (r.GetComponent ("UIRoot"), defaultHeight);
 			#endif
 
-			if (!Mathf.Approximately (r.transform.localScale.x, scale)) 
+			if (!Mathf.Approximately (r.transform.localScale.x, scale))
 			{
 				r.transform.localScale = new Vector3 (scale, scale, scale);
 			}
 		}
 	}
 
-	GameObject[] GetRoots()
+	private float GetRoot2DScale()
+	{
+		return 2.0f * this.camera2DOrthographicSize / currentHeight;
+	}
+
+	private GameObject[] GetRoots()
 	{
 		List<GameObject> roots = new List<GameObject> ();
 
 		Transform[] trans = GetComponentsInChildren<Transform> (true);
-		foreach (Transform t in trans) 
+		foreach (Transform t in trans)
 		{
 			Component c = t.GetComponent ("UIRoot");
-			if (c != null) 
+			if (c != null)
 			{
 				roots.Add (c.gameObject);
 			}

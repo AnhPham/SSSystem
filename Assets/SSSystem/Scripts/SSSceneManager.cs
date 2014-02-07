@@ -19,7 +19,8 @@ public enum SceneType
 	POPUP,
 	MENU,
 	CLOSE,
-	RESET
+	RESET,
+	RES
 }
 
 public class SceneData
@@ -67,6 +68,14 @@ public enum Bgm
 
 public class SSSceneManager : MonoBehaviour 
 {	
+	#region Delegate
+	public delegate void OnScreenStartChangeDelegate(string sceneName);
+	#endregion
+
+	#region Event
+	public OnScreenStartChangeDelegate onScreenStartChange;
+	#endregion
+
 	#region Serialize Field
 	[SerializeField]
 	protected string m_LoadingSceneName;			// Loading scene name  (optional)
@@ -109,6 +118,7 @@ public class SSSceneManager : MonoBehaviour
 	protected GameObject m_Loading;			// Loading object
 	protected GameObject m_LoadingBack;		// Loading back object
 	protected GameObject m_SolidCamera;		// Solid camera object (Lowest camera)
+	protected GameObject m_Res;				// Resource object
 
 	protected int m_LoadingCount;			// Loading counter
 
@@ -145,7 +155,16 @@ public class SSSceneManager : MonoBehaviour
 		while (m_Stack.Count > 0)
 		{
 			string p = m_Stack.Pop();
-			DeactiveScene(p);
+
+			if (m_Stack.Count == 0)
+			{
+				StartCoroutine(DeactiveSceneFull (p, true));
+			}
+			else
+			{
+				DeactiveScene(p);
+			}
+
 			ShieldOff();
 		}
 
@@ -154,6 +173,12 @@ public class SSSceneManager : MonoBehaviour
 		{
 			DeactiveScene(m_Sub.name);
 			m_Sub = null;
+		}
+
+		// Raise event
+		if (onScreenStartChange != null)
+		{
+			onScreenStartChange (sceneName);
 		}
 
 		StartCoroutine(IEScreen(sn, data, onActive, onDeactive));
@@ -384,6 +409,38 @@ public class SSSceneManager : MonoBehaviour
 
 		StartCoroutine(IEClose(immediate));
 	}
+
+	public void LoadRes(string sceneName)
+	{
+		string sn = sceneName;
+
+		if (m_IsBusy) 
+		{
+			Enqueue(sn, null, null, null, SceneType.RES);
+			return;
+		}
+
+		if (m_Res != null) 
+		{
+			Dequeue();
+			return;
+		}
+
+		m_IsBusy = true;
+
+		StartCoroutine(IERes(sn));
+	}
+
+	public void UnloadRes(string sceneName)
+	{
+		string sn = sceneName;
+
+		GameObject sc = m_Dict[sn];
+
+		m_Dict.Remove(sn);
+		OnSceneUnload (sc);
+		Destroy(sc);
+	}
 	#endregion
 
 	#region Protected Function
@@ -465,6 +522,14 @@ public class SSSceneManager : MonoBehaviour
 
 	}
 
+	/// <summary>
+	/// Default first scene is 'First Scene Name', you can override this function.
+	/// </summary>
+	protected virtual void OnFirstSceneLoad()
+	{
+		Screen (m_FirstSceneName);
+	}
+
 	#if UNITY_EDITOR || UNITY_ANDROID
 	protected virtual void Update()
 	{
@@ -500,7 +565,7 @@ public class SSSceneManager : MonoBehaviour
 
 		if (!string.IsNullOrEmpty (m_FirstSceneName)) 
 		{
-			Screen (m_FirstSceneName);
+			OnFirstSceneLoad ();
 		}
 
 		Dequeue ();
@@ -1073,6 +1138,20 @@ public class SSSceneManager : MonoBehaviour
 		Dequeue();
 	}
 
+	private IEnumerator IERes(string sn)
+	{
+		yield return StartCoroutine(LoadScene(sn));
+
+		// Busy off
+		m_IsBusy = false;
+
+		// Set something by type
+		SetByType(sn, SceneType.RES);
+
+		// Check queue
+		Dequeue();
+	}
+
 	private void SetByType(string sn, SceneType type)
 	{
 		switch (type) 
@@ -1092,6 +1171,9 @@ public class SSSceneManager : MonoBehaviour
 				break;
 			case SceneType.RESET:
 				HideLoadingBack ();
+				break;
+			case SceneType.RES:
+				m_Res = m_Dict [sn];
 				break;
 			default:
 				break;
@@ -1139,6 +1221,9 @@ public class SSSceneManager : MonoBehaviour
 				break;
 		case SceneType.RESET:
 				Reset(sd.Data, sd.OnActive, sd.OnDeactive);
+				break;
+		case SceneType.RES:
+				LoadRes(sd.SceneName);
 				break;
 		}
 	}
