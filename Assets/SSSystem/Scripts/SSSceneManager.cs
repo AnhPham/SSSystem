@@ -197,7 +197,7 @@ public class SSSceneManager : MonoBehaviour
 			{
 				string p = m_Stack.Pop();
 
-				bool isScreen = (m_Stack.Count == 1);
+				bool isScreen = (m_Stack.Count == 0);
 				bool isForceDestroy = isScreen;
 
 				DeactiveScene(p, isForceDestroy);
