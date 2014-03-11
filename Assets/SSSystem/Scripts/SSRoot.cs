@@ -8,9 +8,19 @@ using System.Collections;
 
 public class SSRoot : MonoBehaviour 
 {
+	protected virtual void Awake()
+	{
+
+	}
+
 	protected virtual void Start()
 	{
 		CameraSetting ();
+
+		if (SSSceneManager.Instance != null)
+		{
+			SSApplication.OnLoaded (gameObject);
+		}
 	}
 
 	/// <summary>

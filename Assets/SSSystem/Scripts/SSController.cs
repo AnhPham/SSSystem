@@ -88,6 +88,14 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
+	/// Set adding data instead of showing the same popup.
+	/// </summary>
+	/// <param name="data">Data.</param>
+	public virtual void OnSetAdding(object data)
+	{
+	}
+
+	/// <summary>
 	/// Finish to show
 	/// </summary>
 	public virtual void OnShow()

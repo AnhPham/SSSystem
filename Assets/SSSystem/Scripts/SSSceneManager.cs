@@ -41,6 +41,34 @@ public class SceneData
 	}
 }
 
+public class PopUpData
+{
+	/// <summary>
+	/// Gets the data.
+	/// </summary>
+	/// <value>The data.</value>
+	public object Data { get; protected set; }
+
+	/// <summary>
+	/// If a same popup was showed already, you can add data to it & don't show this popup anymore.
+	/// </summary>
+	/// <value><c>true</c> if you want to add data to the same popup; otherwise, <c>false</c>.</value>
+	public bool IsAddData { get; protected set; }
+
+	/// <summary>
+	/// You can set to show this popup only when has no other popup.
+	/// </summary>
+	/// <value><c>true</c> if you only want to show this popup when has no other popup; otherwise, <c>false</c>.</value>
+	public bool IsWaitNoPopUp { get; protected set; }
+
+	public PopUpData(object data = null, bool isAddData = false, bool isWaitNoPopUp = false)
+	{
+		Data = data;
+		IsAddData = isAddData;
+		IsWaitNoPopUp = isWaitNoPopUp;
+	}
+}
+
 public enum Bgm
 {
 	/// <summary>
@@ -70,10 +98,13 @@ public class SSSceneManager : MonoBehaviour
 {	
 	#region Delegate
 	public delegate void OnScreenStartChangeDelegate(string sceneName);
+	public delegate void OnSubScreenStartChangeDelegate(string sceneName);
+	public delegate void Callback ();
 	#endregion
 
 	#region Event
 	public OnScreenStartChangeDelegate onScreenStartChange;
+	public OnSubScreenStartChangeDelegate onSubScreenStartChange;
 	#endregion
 
 	#region Serialize Field
@@ -181,7 +212,7 @@ public class SSSceneManager : MonoBehaviour
 			onScreenStartChange (sceneName);
 		}
 
-		StartCoroutine(IEScreen(sn, data, onActive, onDeactive));
+		IEScreen(sn, data, onActive, onDeactive);
 	}
 	
 	/// <summary>
@@ -236,7 +267,7 @@ public class SSSceneManager : MonoBehaviour
 				m_Sub = null;
 			}
 
-			StartCoroutine(IEScreen(sn, data, onActive, onDeactive));
+			IEScreen(sn, data, onActive, onDeactive);
 		}
 	}
 
@@ -268,7 +299,13 @@ public class SSSceneManager : MonoBehaviour
 
 		m_IsBusy = true;
 
-		StartCoroutine(IESubScreen(sn, data, onActive, onDeactive));
+		// Raise event
+		if (onSubScreenStartChange != null)
+		{
+			onSubScreenStartChange (sceneName);
+		}
+
+		IESubScreen(sn, data, onActive, onDeactive);
 	}
 
 	/// <summary>
@@ -288,14 +325,43 @@ public class SSSceneManager : MonoBehaviour
 			return;
 		}
 
+		// If same popup
 		if (IsPopUpShowed(sn)) 
 		{
+			bool isAddingData = IsAddingData (data);
+
+			if (isAddingData)
+			{
+				GameObject sc = m_Dict [sn];
+				SSController ct = sc.GetComponentInChildren<SSController>();
+
+				if (ct != null)
+				{
+					ct.OnSetAdding (data);
+				}
+
+				Dequeue ();
+			}
+			else
+			{
+				Enqueue(sn, data, onActive, onDeactive, SceneType.POPUP);
+			}
+
+			return;
+		}
+
+		// Check is wait no popup
+		bool isWaitNoPopUp = IsWaitNoPopUp (data);
+
+		if (isWaitNoPopUp && m_Stack.Count >= 2)
+		{
+			Enqueue(sn, data, onActive, onDeactive, SceneType.POPUP);
 			return;
 		}
 
 		m_IsBusy = true;
 
-		StartCoroutine(IEPopUp(sn, data, onActive, onDeactive));
+		IEPopUp(sn, data, onActive, onDeactive);
 	}
 
 	/// <summary>
@@ -324,7 +390,7 @@ public class SSSceneManager : MonoBehaviour
 
 		m_IsBusy = true;
 
-		StartCoroutine(IEMenu(sn, data, onActive, onDeactive));
+		IEMenu(sn, data, onActive, onDeactive);
 	}
 
 	/// <summary>
@@ -428,7 +494,7 @@ public class SSSceneManager : MonoBehaviour
 
 		m_IsBusy = true;
 
-		StartCoroutine(IERes(sn));
+		IERes (sn);
 	}
 
 	public void UnloadRes(string sceneName)
@@ -458,7 +524,7 @@ public class SSSceneManager : MonoBehaviour
 		m_Scenes = new GameObject("Scenes");
 		m_Shields = new GameObject("Shields");
 
-		StartCoroutine (CreateLoadingsThenLoadFirstScene ());
+		CreateLoadingsThenLoadFirstScene ();
 	}
 
 	/// <summary>
@@ -554,13 +620,59 @@ public class SSSceneManager : MonoBehaviour
 	#endregion
 
 	#region Private Function
-	private IEnumerator CreateLoadingsThenLoadFirstScene()
+	private void CreateLoadingsThenLoadFirstScene()
 	{
 		m_IsBusy = true;
 
-		yield return StartCoroutine (CreateLoadingBack ());
-		yield return StartCoroutine (CreateLoadingTop ());
+		if (string.IsNullOrEmpty (m_LoadingSceneName))
+		{
+			AfterLoading ();
+			return;
+		}
 
+		if (m_LoadingBack == null) 
+		{
+			SSApplication.LoadLevelAdditive (m_LoadingSceneName, (GameObject root) =>
+			{
+				CreateLoadingBack(root);
+
+				CreateLoadingTop();
+
+				AfterLoading();
+			});
+		}
+	}
+
+	private void CreateLoadingBack(GameObject root)
+	{
+		m_LoadingBack = root;
+		m_LoadingBack.name = m_LoadingBack.name + "Back";
+
+		SetPosition (m_LoadingBack, -m_ShieldTopIndex);
+		SetCameras (m_LoadingBack, -m_ShieldTopIndex);
+
+		m_LoadingBack.SetActive (false);
+	}
+
+	private void CreateLoadingTop()
+	{
+		if (m_Loading == null) 
+		{
+			if (m_LoadingBack != null) 
+			{
+				m_Loading = Instantiate (m_LoadingBack) as GameObject;
+				m_Loading.name = m_LoadingBack.name.Replace ("Back", "Top");
+
+				SetPosition (m_Loading, m_ShieldTopIndex);
+				SetCameras (m_Loading, m_ShieldTopIndex);
+
+				m_Loading.SetActive (false);
+			}
+		}
+	}
+
+	private void AfterLoading()
+	{
 		m_IsBusy = false;
 
 		if (!string.IsNullOrEmpty (m_FirstSceneName)) 
@@ -571,16 +683,39 @@ public class SSSceneManager : MonoBehaviour
 		Dequeue ();
 	}
 
-	private IEnumerator LoadScene(string sn)
+	private void LoadScene(string sn, Callback onLoaded)
 	{
-		yield return Application.LoadLevelAdditiveAsync(sn);
+		if (m_Dict.ContainsKey(sn))
+		{
+			ActiveScene(sn);
 
-		GameObject scene = GameObject.Find (sn);
+			// Animation
+			SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
+			if (an != null)
+			{
+				// We should bring this scene to somewhere far when re-active it.
+				// Then the animation will automatically bring it back at next frame.
+				// This trick remove flicker at the first frame.
+				an.transform.localPosition = new Vector3(99999, 0, 0);
+				an.transform.localScale = Vector3.one;
+			}
 
-		m_Dict.Add(sn, scene);
-		scene.transform.parent = m_Scenes.transform;
+			onLoaded ();
+		}
+		else
+		{
+			SSApplication.LoadLevelAdditive (sn, (GameObject root) =>
+			{
+				GameObject scene = root;
 
-		OnSceneLoad (scene);
+				m_Dict.Add(sn, scene);
+				scene.transform.parent = m_Scenes.transform;
+
+				OnSceneLoad (scene);
+
+				onLoaded ();
+			});
+		}
 	}
 
 	private void ActiveScene(string sn)
@@ -724,6 +859,10 @@ public class SSSceneManager : MonoBehaviour
 
 	private void LockTopScene()
 	{
+		// Check if has no scene in stack
+		if (m_Stack.Count == 0)
+			return;
+
 		// Lock below scene
 		GameObject scene = m_Dict[m_Stack.Peek()];
 		OnLock(scene);
@@ -737,6 +876,10 @@ public class SSSceneManager : MonoBehaviour
 
 	private void UnlockTopScene()
 	{
+		// Check if has no scene in stack
+		if (m_Stack.Count == 0)
+			return;
+
 		if (!m_Dict.ContainsKey (m_Stack.Peek())) return;
 
 		// Unlock below scene
@@ -882,47 +1025,6 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private IEnumerator CreateLoadingBack()
-	{
-		if (string.IsNullOrEmpty (m_LoadingSceneName)) yield break;
-
-		if (m_LoadingBack == null) 
-		{
-			yield return Application.LoadLevelAdditiveAsync (m_LoadingSceneName);
-
-			m_LoadingBack = GameObject.Find (m_LoadingSceneName);
-			m_LoadingBack.name = m_LoadingBack.name + "Back";
-
-			SetPosition (m_LoadingBack, -m_ShieldTopIndex);
-			SetCameras (m_LoadingBack, -m_ShieldTopIndex);
-
-			m_LoadingBack.SetActive (false);
-		}
-	}
-
-	private IEnumerator CreateLoadingTop()
-	{
-		if (string.IsNullOrEmpty (m_LoadingSceneName)) yield break;
-
-		if (m_Loading == null) 
-		{
-			if (m_LoadingBack == null) {
-				yield return Application.LoadLevelAdditiveAsync (m_LoadingSceneName);
-				m_Loading = GameObject.Find (m_LoadingSceneName);
-				m_Loading.name = m_Loading.name + "Top";
-			} else 
-			{
-				m_Loading = Instantiate (m_LoadingBack) as GameObject;
-				m_Loading.name = m_LoadingBack.name.Replace ("Back", "Top");
-			}
-
-			SetPosition (m_Loading, m_ShieldTopIndex);
-			SetCameras (m_Loading, m_ShieldTopIndex);
-
-			m_Loading.SetActive (false);
-		}
-	}
-
 	private void ShowLoadingBack()
 	{
 		if (m_LoadingBack != null) 
@@ -939,12 +1041,12 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private IEnumerator IECommon(string sn, int i, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
+	private void IECommon(string sn, int i, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
 	{
-		yield return StartCoroutine(IECommon(sn, i, i, data, onActive, onDeactive, type, isInStack));
+		IECommon (sn, i, i, data, onActive, onDeactive, type, isInStack);
 	}
 
-	private IEnumerator IECommon(string sn, int ip, float ic, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
+	private void IECommon(string sn, int ip, float ic, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
 	{
 		// Wait to avoid flicker
 		//yield return new WaitForEndOfFrame();
@@ -967,99 +1069,91 @@ public class SSSceneManager : MonoBehaviour
 			}
 		}
 
-		// Animation
-		SSMotion an = null;
-
-		// Load or active
-		if (m_Dict.ContainsKey(sn))
+		// Load or active scene
+		LoadScene (sn, () =>
 		{
-			ActiveScene(sn);
+			// Set Position
+			SetPosition(sn, ip);
 
-			// Animation
-			an = m_Dict[sn].GetComponentInChildren<SSMotion>();
-			if (an != null)
+			// Set Cameras
+			SetCameras(sn, ic);
+
+			if (isInStack)
 			{
-				// We should bring this scene to somewhere far when re-active it.
-				// Then the animation will automatically bring it back at next frame.
-				// This trick remove flicker at the first frame.
-				an.transform.localPosition = new Vector3(99999, 0, 0);
-				an.transform.localScale = Vector3.one;
+				// Add to Stack
+				m_Stack.Push(sn);
 			}
-		}
-		else
-		{
-			yield return StartCoroutine(LoadScene(sn));
-		}
 
-		// Set Position
-		SetPosition(sn, ip);
+			// Set event & data
+			SSController ct = m_Dict[sn].GetComponentInChildren<SSController>();
+			if (ct != null)
+			{
+				ct.OnActive = onActive;
+				ct.OnDeactive = onDeactive;
 
-		// Set Cameras
-		SetCameras(sn, ic);
+				if (ct.OnActive != null) ct.OnActive(ct);
 
-		if (isInStack)
-		{
-			// Add to Stack
-			m_Stack.Push(sn);
-		}
+				ct.OnSet(data);
+			}
 
-		// Set event & data
-		SSController ct = m_Dict[sn].GetComponentInChildren<SSController>();
-		if (ct != null)
-		{
-			ct.OnActive = onActive;
-			ct.OnDeactive = onDeactive;
+			// Active Empty Shield
+			ShieldOn (ip, 0);
 
-			if (ct.OnActive != null) ct.OnActive(ct);
+			// Play if has animation
+			StartCoroutine(IEPlayAnimation(sn, () =>
+			{
+				// Deactive Empty Shield
+				ShieldOff ();
 
-			ct.OnSet(data);
-		}
+				// Event
+				if (ct != null)
+				{
+					if (isInStack)
+					{
+						BgmSceneOpen(curBgm, ct);
+					}
+					ct.OnShow();
+				}
 
-		// Active Empty Shield
-		ShieldOn (ip, 0);
+				// Busy off
+				m_IsBusy = false;
 
-		// Play Animation
-		if (an == null) an = m_Dict[sn].GetComponentInChildren<SSMotion>();
+				// Set something by type
+				SetByType(sn, type);
+
+				// Check queue
+				Dequeue();
+			}));
+		});
+	}
+
+	private IEnumerator IEPlayAnimation(string sn, Callback callback)
+	{
+		SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
 		if (an != null)
 		{
 			yield return null;
-			an.PlayShow();
+			an.PlayShow ();
 			yield return StartCoroutine (Pause (an.TimeShow ()));
+
+			callback ();
 		}
-
-		// Deactive Empty Shield
-		ShieldOff ();
-
-		// Event
-		if (ct != null)
+		else
 		{
-			if (isInStack)
-			{
-				BgmSceneOpen(curBgm, ct);
-			}
-			ct.OnShow();
+			callback ();
 		}
-
-		// Busy off
-		m_IsBusy = false;
-
-		// Set something by type
-		SetByType(sn, type);
-
-		// Check queue
-		Dequeue();
 	}
 
-	private IEnumerator IEScreen(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
+	private void IEScreen(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
 	{
 		// Show system loading
 		ShowLoadingBack ();
 
 		// Common
-		yield return StartCoroutine(IECommon(sn, 0, data, onActive, onDeactive, SceneType.SCREEN));
+		IECommon(sn, 0, data, onActive, onDeactive, SceneType.SCREEN);
 	}
 
-	private IEnumerator IEPopUp(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
+	private void IEPopUp(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
 	{
 		// Count
 		int c = m_Stack.Count;
@@ -1068,19 +1162,19 @@ public class SSSceneManager : MonoBehaviour
 		int ni = c;
 
 		// Common
-		yield return StartCoroutine(IECommon(sn, ni, data, onActive, onDeactive, SceneType.POPUP));
+		IECommon(sn, ni, data, onActive, onDeactive, SceneType.POPUP);
 	}
 
-	private IEnumerator IEMenu(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
+	private void IEMenu(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
 	{
 		// Common
-		yield return StartCoroutine(IECommon(sn, -1, 0.6f, data, onActive, onDeactive, SceneType.MENU, false));
+		IECommon(sn, -1, 0.6f, data, onActive, onDeactive, SceneType.MENU, false);
 	}
 
-	private IEnumerator IESubScreen(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
+	private void IESubScreen(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
 	{
 		// Common
-		yield return StartCoroutine(IECommon(sn, -2, 0.3f, data, onActive, onDeactive, SceneType.SUB_SCREEN, false));
+		IECommon(sn, -2, 0.3f, data, onActive, onDeactive, SceneType.SUB_SCREEN, false);
 	}
 
 	private IEnumerator IEClose(bool immediate)
@@ -1138,18 +1232,19 @@ public class SSSceneManager : MonoBehaviour
 		Dequeue();
 	}
 
-	private IEnumerator IERes(string sn)
+	private void IERes(string sn)
 	{
-		yield return StartCoroutine(LoadScene(sn));
+		LoadScene (sn, () =>
+		{
+			// Busy off
+			m_IsBusy = false;
 
-		// Busy off
-		m_IsBusy = false;
+			// Set something by type
+			SetByType(sn, SceneType.RES);
 
-		// Set something by type
-		SetByType(sn, SceneType.RES);
-
-		// Check queue
-		Dequeue();
+			// Check queue
+			Dequeue();
+		});
 	}
 
 	private void SetByType(string sn, SceneType type)
@@ -1189,13 +1284,29 @@ public class SSSceneManager : MonoBehaviour
 	{
 		if (m_Queue.Count == 0) return;
 
-		// Check if this scene is popup & it was showed already
+		// Check if this scene is popup
 		SceneData sd = m_Queue.Peek ();
 		if (sd.Type == SceneType.POPUP) 
 		{
+			// Check if scene was showed already
 			if (IsPopUpShowed (sd.SceneName)) 
 			{
-				Debug.Log ("Wait Close: Close current popup to do next command");
+				// Check if is adding data
+				bool isAddingData = IsAddingData (sd.Data);
+
+				if (!isAddingData)
+				{
+					Debug.Log ("Wait Close: Close current popup to do next command");
+					return;
+				}
+			}
+
+			// Check if wait no popup
+			bool isWaitNoPopUp = IsWaitNoPopUp (sd.Data);
+
+			// Check if wait no popup && has popup now
+			if (isWaitNoPopUp && m_Stack.Count >= 2)
+			{
 				return;
 			}
 		}
@@ -1226,6 +1337,40 @@ public class SSSceneManager : MonoBehaviour
 				LoadRes(sd.SceneName);
 				break;
 		}
+	}
+
+	private bool IsAddingData(object data)
+	{
+		bool isAddingData = false;
+
+		if (data != null && data.GetType() == typeof(PopUpData))
+		{
+			PopUpData popUpData = (PopUpData)data;
+
+			if (popUpData != null)
+			{
+				isAddingData = popUpData.IsAddData;
+			}
+		}
+
+		return isAddingData;
+	}
+
+	private bool IsWaitNoPopUp(object data)
+	{
+		bool isWaitNoPopUp = false;
+
+		if (data != null && data.GetType() == typeof(PopUpData))
+		{
+			PopUpData popUpData = (PopUpData)data;
+
+			if (popUpData != null)
+			{
+				isWaitNoPopUp = popUpData.IsWaitNoPopUp;
+			}
+		}
+
+		return isWaitNoPopUp;
 	}
 
 	private IEnumerator Pause(float time)

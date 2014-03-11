@@ -1,11 +1,19 @@
-SSSystem 1.2.0
+SS-System 1.2.1
 ========
 
-SS-System for Unity3d: Scene &amp; UI Manager!
+SS-System for Unity: Scene &amp; UI Manager!
 
 ---
 
 <b>RELEASE NOTES:</b>
+
+Version 1.2.1
+
+<b>(IMPORTANT)</b>- Made a big change in SSSceneManager for resolving the problem of 1-frame delay in OnSet method, and now it SUPPORT UNITY FREE!
+
+- SSSceneManager: Add class PopUpData
+- SSSceneManager: Fix a bug which crash when lock/unlock scene.
+- SSController: Add virtual method OnSetAdding()
 
 Version 1.2.0
 

@@ -1,6 +1,13 @@
-SS-SYSTEM VERSION 1.2.0
+SS-SYSTEM VERSION 1.2.1
 
 RELEASE NOTES:
+
+Version 1.2.1
+(IMPORTANT)  Made a big change in SSSceneManager for resolving the problem of 1-frame delay in OnSet method, and now it SUPPORT UNITY FREE!
+
+- SSSceneManager: Add class PopUpData
+- SSSceneManager: Fix a bug which crash when lock/unlock scene.
+- SSController: Add virtual method OnSetAdding()
 
 Version 1.2.0
 (IMPORTANT)  You must to edit all Start() function of scripts which inherit SSController.
