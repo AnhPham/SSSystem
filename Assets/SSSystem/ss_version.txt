@@ -7,6 +7,7 @@ Version 1.2.1
 
 - SSSceneManager: Add class PopUpData
 - SSSceneManager: Fix a bug which crash when lock/unlock scene.
+- SSSceneManager: Add Default Shield Color, Remove Default Shield Alpha.
 - SSController: Add virtual method OnSetAdding()
 
 Version 1.2.0

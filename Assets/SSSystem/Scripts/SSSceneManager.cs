@@ -95,7 +95,13 @@ public enum Bgm
 }
 
 public class SSSceneManager : MonoBehaviour 
-{	
+{
+	#region Const
+	protected int SCENE_DISTANCE = 5000;			// The distance of loaded scenes in Base Scene
+	protected int DEPTH_DISTANCE = 10;				// The camera depth distance of popup layers
+	protected int SHIELD_TOP_INDEX = 9;				// The index of shield top
+	#endregion
+
 	#region Delegate
 	public delegate void OnScreenStartChangeDelegate(string sceneName);
 	public delegate void OnSubScreenStartChangeDelegate(string sceneName);
@@ -108,23 +114,29 @@ public class SSSceneManager : MonoBehaviour
 	#endregion
 
 	#region Serialize Field
+	/// <summary>
+	/// Loading scene name  (optional).
+	/// </summary>
 	[SerializeField]
-	protected string m_LoadingSceneName;			// Loading scene name  (optional)
+	protected string m_LoadingSceneName;
 
+	/// <summary>
+	/// First scene name  (optional).
+	/// </summary>
 	[SerializeField]
-	protected string m_FirstSceneName;				// First scene name  (optional)
+	protected string m_FirstSceneName;
 
+	/// <summary>
+	/// Default shield color.
+	/// </summary>
 	[SerializeField]
-	protected float m_DefaultShieldAlpha = 0.25f;	// Default shield alpha  ( from 0 to 1 )
+	protected Color m_DefaultShieldColor = new Color(0, 0, 0, 0.25f);
 
-	//[SerializeField]
-	protected int m_SceneDistance = 5000;			// The distance of loaded scenes in Base Scene
-
-	//[SerializeField]
-	protected int m_DepthDistance = 10;				// The camera depth distance of popup layers
-
-	//[SerializeField]
-	protected int m_ShieldTopIndex = 9;				// The index of shield top
+	/// <summary>
+	/// // Check this if using UNIY PRO.
+	/// </summary>
+	[SerializeField]
+	protected bool m_IsLoadAsync;
 	#endregion
 
 	#region Singleton
@@ -519,7 +531,7 @@ public class SSSceneManager : MonoBehaviour
 
 		m_SolidCamera = Instantiate (Resources.Load ("SolidCamera")) as GameObject;
 		m_SolidCamera.name = "SolidCamera";
-		m_SolidCamera.transform.localPosition = new Vector3(-(m_ShieldTopIndex+0.5f) * m_SceneDistance, 0, 0);
+		m_SolidCamera.transform.localPosition = new Vector3(-(SHIELD_TOP_INDEX+0.5f) * SCENE_DISTANCE, 0, 0);
 		
 		m_Scenes = new GameObject("Scenes");
 		m_Shields = new GameObject("Shields");
@@ -632,7 +644,7 @@ public class SSSceneManager : MonoBehaviour
 
 		if (m_LoadingBack == null) 
 		{
-			SSApplication.LoadLevelAdditive (m_LoadingSceneName, (GameObject root) =>
+			SSApplication.LoadLevelAdditive (m_LoadingSceneName, m_IsLoadAsync, (GameObject root) =>
 			{
 				CreateLoadingBack(root);
 
@@ -648,8 +660,8 @@ public class SSSceneManager : MonoBehaviour
 		m_LoadingBack = root;
 		m_LoadingBack.name = m_LoadingBack.name + "Back";
 
-		SetPosition (m_LoadingBack, -m_ShieldTopIndex);
-		SetCameras (m_LoadingBack, -m_ShieldTopIndex);
+		SetPosition (m_LoadingBack, -SHIELD_TOP_INDEX);
+		SetCameras (m_LoadingBack, -SHIELD_TOP_INDEX);
 
 		m_LoadingBack.SetActive (false);
 	}
@@ -663,8 +675,8 @@ public class SSSceneManager : MonoBehaviour
 				m_Loading = Instantiate (m_LoadingBack) as GameObject;
 				m_Loading.name = m_LoadingBack.name.Replace ("Back", "Top");
 
-				SetPosition (m_Loading, m_ShieldTopIndex);
-				SetCameras (m_Loading, m_ShieldTopIndex);
+				SetPosition (m_Loading, SHIELD_TOP_INDEX);
+				SetCameras (m_Loading, SHIELD_TOP_INDEX);
 
 				m_Loading.SetActive (false);
 			}
@@ -704,7 +716,7 @@ public class SSSceneManager : MonoBehaviour
 		}
 		else
 		{
-			SSApplication.LoadLevelAdditive (sn, (GameObject root) =>
+			SSApplication.LoadLevelAdditive (sn, m_IsLoadAsync, (GameObject root) =>
 			{
 				GameObject scene = root;
 
@@ -778,12 +790,12 @@ public class SSSceneManager : MonoBehaviour
 		// Instantiate from resources
 		GameObject sh = Instantiate(Resources.Load("Shield")) as GameObject;
 		sh.name = "Shield" + i;
-		sh.transform.localPosition = new Vector3((i+0.5f) * m_SceneDistance, 0, 0);
+		sh.transform.localPosition = new Vector3((i+0.5f) * SCENE_DISTANCE, 0, 0);
 		sh.transform.parent = m_Shields.transform;
 
 		// Set camera depth
 		Camera c = sh.GetComponentInChildren<Camera>();
-		c.depth = (i+1) * m_DepthDistance;
+		c.depth = (i+1) * DEPTH_DISTANCE;
 
 		return sh;
 	}
@@ -792,7 +804,7 @@ public class SSSceneManager : MonoBehaviour
 	{
 		if (m_ShieldTop == null) 
 		{
-			m_ShieldTop = CreateShield (m_ShieldTopIndex-1);
+			m_ShieldTop = CreateShield (SHIELD_TOP_INDEX-1);
 		} else 
 		{
 			m_ShieldTop.SetActive (true);
@@ -818,10 +830,10 @@ public class SSSceneManager : MonoBehaviour
 
 	private void ShieldOn(int i)
 	{
-		ShieldOn (i, m_DefaultShieldAlpha);
+		ShieldOn (i, m_DefaultShieldColor);
 	}
 
-	private void ShieldOn(int i, float alpha)
+	private void ShieldOn(int i, Color color)
 	{
 		if (i < 0) return;
 
@@ -839,7 +851,7 @@ public class SSSceneManager : MonoBehaviour
 		}
 
 		MeshRenderer mesh = m_ListShield[i].GetComponentInChildren<MeshRenderer> ();
-		mesh.material.color = new Color (0, 0, 0, alpha);
+		mesh.material.color = color;
 
 		// Lock
 		LockTopScene ();
@@ -902,7 +914,7 @@ public class SSSceneManager : MonoBehaviour
 
 	private void SetPosition(GameObject sc, int i)
 	{
-		sc.transform.localPosition = new Vector3(i * m_SceneDistance, m_SceneDistance, 0);
+		sc.transform.localPosition = new Vector3(i * SCENE_DISTANCE, SCENE_DISTANCE, 0);
 	}
 
 	private void SetCameras(string sn, float i)
@@ -927,7 +939,7 @@ public class SSSceneManager : MonoBehaviour
 
 			cam.tag = "Untagged";
 			cam.clearFlags = CameraClearFlags.Depth;
-			cam.depth = Mathf.RoundToInt(i * m_DepthDistance) + c + 1;
+			cam.depth = Mathf.RoundToInt(i * DEPTH_DISTANCE) + c + 1;
 			c++;
 		}
 
@@ -1097,7 +1109,7 @@ public class SSSceneManager : MonoBehaviour
 			}
 
 			// Active Empty Shield
-			ShieldOn (ip, 0);
+			ShieldOn (ip, new Color(0, 0, 0, 0));
 
 			// Play if has animation
 			StartCoroutine(IEPlayAnimation(sn, () =>
@@ -1196,7 +1208,7 @@ public class SSSceneManager : MonoBehaviour
 		}
 
 		// Active Empty shield
-		ShieldOn (m_Stack.Count - 1, 0);
+		ShieldOn (m_Stack.Count - 1, new Color(0, 0, 0, 0));
 
 		// Stack peek
 		string sn = m_Stack.Peek();

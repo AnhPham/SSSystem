@@ -8,12 +8,19 @@ public class SSApplication
 	private static OnLoadedDelegate m_OnLoaded;
 	private static string m_SceneName;
 
-	public static void LoadLevelAdditive(string sceneName, OnLoadedDelegate onLoaded = null)
+	public static void LoadLevelAdditive(string sceneName, bool isAsync = false, OnLoadedDelegate onLoaded = null)
 	{
 		m_OnLoaded = onLoaded;
 		m_SceneName = sceneName;
 
-		Application.LoadLevelAdditive (sceneName);
+		if (!isAsync)
+		{
+			Application.LoadLevelAdditive (sceneName);
+		}
+		else
+		{
+			Application.LoadLevelAdditiveAsync (sceneName);
+		}
 	}
 
 	public static void OnLoaded(GameObject root)
