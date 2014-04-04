@@ -8,6 +8,8 @@ using System.Collections;
 
 public class SSRoot : MonoBehaviour 
 {
+	public bool PreventLoadCallBack { get; set; }
+
 	protected virtual void Awake()
 	{
 
@@ -17,7 +19,7 @@ public class SSRoot : MonoBehaviour
 	{
 		CameraSetting ();
 
-		if (SSSceneManager.Instance != null)
+		if (!PreventLoadCallBack && SSSceneManager.Instance != null)
 		{
 			SSApplication.OnLoaded (gameObject);
 		}

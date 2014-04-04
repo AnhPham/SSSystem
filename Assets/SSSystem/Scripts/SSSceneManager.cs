@@ -10,6 +10,7 @@ using System.Linq;
 
 #region Delegate
 public delegate void SSCallBackDelegate(SSController ctrl);
+public delegate void NoParamCallback ();
 #endregion
 
 public enum SceneType
@@ -69,6 +70,18 @@ public class PopUpData
 	}
 }
 
+public class CallbackData
+{
+	public float 			TimeOut { get; private set; }
+	public NoParamCallback	Callback { get; private set; }
+
+	public CallbackData(float timeOut, NoParamCallback callBack)
+	{
+		TimeOut = timeOut;
+		Callback = callBack;
+	}
+}
+
 public enum Bgm
 {
 	/// <summary>
@@ -105,12 +118,13 @@ public class SSSceneManager : MonoBehaviour
 	#region Delegate
 	public delegate void OnScreenStartChangeDelegate(string sceneName);
 	public delegate void OnSubScreenStartChangeDelegate(string sceneName);
-	public delegate void Callback ();
+	public delegate void OnSceneActivedDelegate (string sceneName);
 	#endregion
 
 	#region Event
 	public OnScreenStartChangeDelegate onScreenStartChange;
 	public OnSubScreenStartChangeDelegate onSubScreenStartChange;
+	public OnSceneActivedDelegate onSceneActived;
 	#endregion
 
 	#region Serialize Field
@@ -199,24 +213,13 @@ public class SSSceneManager : MonoBehaviour
 		{
 			string p = m_Stack.Pop();
 
-			if (m_Stack.Count == 0)
-			{
-				StartCoroutine(DeactiveSceneFull (p, true));
-			}
-			else
-			{
-				DeactiveScene(p);
-			}
+			StartCoroutine(CloseScene (p, true));
 
 			ShieldOff();
 		}
 
 		// Remove current sub
-		if (m_Sub != null)
-		{
-			DeactiveScene(m_Sub.name);
-			m_Sub = null;
-		}
+		CloseSubScene ();
 
 		// Raise event
 		if (onScreenStartChange != null)
@@ -268,16 +271,12 @@ public class SSSceneManager : MonoBehaviour
 				bool isScreen = (m_Stack.Count == 0);
 				bool isForceDestroy = isScreen;
 
-				DeactiveScene(p, isForceDestroy);
+				StartCoroutine(CloseScene (p, true, isForceDestroy));
 				ShieldOff();
 			}
 
 			// Remove current sub
-			if (m_Sub != null)
-			{
-				DeactiveScene(m_Sub.name);
-				m_Sub = null;
-			}
+			CloseSubScene ();
 
 			IEScreen(sn, data, onActive, onDeactive);
 		}
@@ -430,8 +429,10 @@ public class SSSceneManager : MonoBehaviour
 	/// <summary>
 	/// Shows the loading indicator
 	/// </summary>
-	/// <param name="alpha">Alpha of shield</param>
-	public void ShowLoading(float alpha = 0.5f)
+	/// <param name="alpha">Alpha of shield.</param>
+	/// <param name="timeOut">Time out.</param>
+	/// <param name="callBack">Call back.</param>
+	public void ShowLoading(float alpha = 0.5f, float timeOut = 0, NoParamCallback callBack = null)
 	{
 		if (m_Loading == null) return;
 
@@ -439,6 +440,11 @@ public class SSSceneManager : MonoBehaviour
 		m_Loading.SetActive (true);
 
 		m_LoadingCount++;
+
+		if (timeOut > 0)
+		{
+			StartCoroutine ("IEHideLoading", new CallbackData(timeOut, callBack));
+		}
 	}
 
 	/// <summary>
@@ -457,16 +463,18 @@ public class SSSceneManager : MonoBehaviour
 			ShieldTopOff ();
 			m_Loading.SetActive (false);
 		}
+
+		StopCoroutine ("IEHideLoading");
 	}
 
 	/// <summary>
-		/// Closes the current sub-scene.
+	/// Closes the current sub-scene.
 	/// </summary>
 	public void CloseSubScene()
 	{
 		if (m_Sub != null)
 		{
-			StartCoroutine (DeactiveSceneFull (m_Sub.name, true));
+			StartCoroutine (CloseScene (m_Sub.name, true));
 			m_Sub = null;
 		}
 	}
@@ -488,6 +496,10 @@ public class SSSceneManager : MonoBehaviour
 		StartCoroutine(IEClose(immediate));
 	}
 
+	/// <summary>
+	/// Load the res scene.
+	/// </summary>
+	/// <param name="sceneName">Scene name.</param>
 	public void LoadRes(string sceneName)
 	{
 		string sn = sceneName;
@@ -509,6 +521,10 @@ public class SSSceneManager : MonoBehaviour
 		IERes (sn);
 	}
 
+	/// <summary>
+	/// Unload the res scene.
+	/// </summary>
+	/// <param name="sceneName">Scene name.</param>
 	public void UnloadRes(string sceneName)
 	{
 		string sn = sceneName;
@@ -518,6 +534,78 @@ public class SSSceneManager : MonoBehaviour
 		m_Dict.Remove(sn);
 		OnSceneUnload (sc);
 		Destroy(sc);
+	}
+
+	/// <summary>
+	/// Determine whether the scene is active.
+	/// </summary>
+	/// <returns><c>true</c> if the scene is active; otherwise, <c>false</c>.</returns>
+	/// <param name="sceneName">Scene name.</param>
+	public bool IsSceneActive(string sceneName)
+	{
+		string sn = sceneName;
+
+		if (!m_Dict.ContainsKey (sn))
+		{
+			return false;
+		}
+
+		GameObject sc = m_Dict[sn];
+
+		return sc.activeInHierarchy;
+	}
+
+	/// <summary>
+	/// Determine whether the scene is in queue.
+	/// </summary>
+	/// <returns><c>true</c> if the scene is in queue; otherwise, <c>false</c>.</returns>
+	/// <param name="sceneName">Scene name.</param>
+	public bool IsSceneInQueue(string sceneName)
+	{
+		string sn = sceneName;
+
+		foreach (var scene in m_Queue)
+		{
+			if (string.Compare (sn, scene.SceneName) == 0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Determine whether the scene is in stack.
+	/// </summary>
+	/// <returns><c>true</c> if the scene is in stack; otherwise, <c>false</c>.</returns>
+	/// <param name="sceneName">Scene name.</param>
+	public bool IsSceneInStack(string sceneName)
+	{
+		string sn = sceneName;
+
+		return m_Stack.Contains (sn);
+	}
+
+	/// <summary>
+	///  Determine whether the scene is active or in queue.
+	/// </summary>
+	/// <returns><c>true</c> if the scene is active & in queue; otherwise, <c>false</c>.</returns>
+	/// <param name="sceneName">Scene name.</param>
+	public bool IsSceneActiveOrInQueue(string sceneName)
+	{
+		string sn = sceneName;
+
+		return (IsSceneActive (sn) || (IsSceneInQueue (sn)));
+	}
+
+	/// <summary>
+	/// Get scene root.
+	/// </summary>
+	/// <returns>Scene Root.</returns>
+	public GameObject SceneRoot()
+	{
+		return m_Scenes;
 	}
 	#endregion
 
@@ -675,6 +763,16 @@ public class SSSceneManager : MonoBehaviour
 				m_Loading = Instantiate (m_LoadingBack) as GameObject;
 				m_Loading.name = m_LoadingBack.name.Replace ("Back", "Top");
 
+				SSRoot root = m_Loading.GetComponent<SSRoot> ();
+				if (root == null)
+				{
+					Debug.LogWarning ("You must to attach SSRoot to the root object of loading scene!");
+				}
+				else
+				{
+					root.PreventLoadCallBack = true;
+				}
+
 				SetPosition (m_Loading, SHIELD_TOP_INDEX);
 				SetCameras (m_Loading, SHIELD_TOP_INDEX);
 
@@ -695,7 +793,7 @@ public class SSSceneManager : MonoBehaviour
 		Dequeue ();
 	}
 
-	private void LoadScene(string sn, Callback onLoaded)
+	private void LoadScene(string sn, NoParamCallback onLoaded)
 	{
 		if (m_Dict.ContainsKey(sn))
 		{
@@ -721,6 +819,7 @@ public class SSSceneManager : MonoBehaviour
 				GameObject scene = root;
 
 				m_Dict.Add(sn, scene);
+
 				scene.transform.parent = m_Scenes.transform;
 
 				OnSceneLoad (scene);
@@ -735,7 +834,7 @@ public class SSSceneManager : MonoBehaviour
 		m_Dict[sn].SetActive(true);
 	}
 
-	private void DeactiveScene(string sn, bool forceDestroy = false)
+	private void DeactiveOrDestroy(string sn, bool forceDestroy = false)
 	{
 		bool isCache = true;
 
@@ -756,7 +855,7 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private IEnumerator DeactiveSceneFull(string sn, bool immediate)
+	private IEnumerator CloseScene(string sn, bool immediate, bool isForceDestroy = false)
 	{
 		// Event
 		SSController ct = m_Dict[sn].GetComponentInChildren<SSController>();
@@ -782,7 +881,8 @@ public class SSSceneManager : MonoBehaviour
 			if (ct.OnDeactive != null) ct.OnDeactive(ct);
 		}
 
-		DeactiveScene(sn);
+		// Deactive or Destroy
+		DeactiveOrDestroy(sn, isForceDestroy);
 	}
 
 	private GameObject CreateShield(int i)
@@ -1133,13 +1233,19 @@ public class SSSceneManager : MonoBehaviour
 				// Set something by type
 				SetByType(sn, type);
 
+				// Event
+				if (onSceneActived != null)
+				{
+					onSceneActived(sn);
+				}
+
 				// Check queue
 				Dequeue();
 			}));
 		});
 	}
 
-	private IEnumerator IEPlayAnimation(string sn, Callback callback)
+	private IEnumerator IEPlayAnimation(string sn, NoParamCallback callback)
 	{
 		SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
 		if (an != null)
@@ -1214,7 +1320,7 @@ public class SSSceneManager : MonoBehaviour
 		string sn = m_Stack.Peek();
 
 		// Deactive Scene
-		yield return StartCoroutine( DeactiveSceneFull (sn, immediate));
+		yield return StartCoroutine( CloseScene (sn, immediate));
 
 		// Deactive Empty shield
 		ShieldOff();
@@ -1239,6 +1345,16 @@ public class SSSceneManager : MonoBehaviour
 
 		// Busy off
 		m_IsBusy = false;
+
+		// Event
+		if (m_Stack.Count > 0)
+		{
+			string s = m_Stack.Peek();
+			if (onSceneActived != null)
+			{
+				onSceneActived (s);
+			}
+		}
 
 		// Check queue
 		Dequeue();
@@ -1281,6 +1397,7 @@ public class SSSceneManager : MonoBehaviour
 				break;
 			case SceneType.RES:
 				m_Res = m_Dict [sn];
+				m_Res.transform.localPosition = new Vector3 (99999, 0, 0);
 				break;
 			default:
 				break;
@@ -1383,6 +1500,18 @@ public class SSSceneManager : MonoBehaviour
 		}
 
 		return isWaitNoPopUp;
+	}
+
+	private IEnumerator IEHideLoading(CallbackData callbackData)
+	{
+		yield return new WaitForSeconds (callbackData.TimeOut);
+
+		HideLoading ();
+
+		if (callbackData.Callback != null)
+		{
+			callbackData.Callback ();
+		}
 	}
 
 	private IEnumerator Pause(float time)
