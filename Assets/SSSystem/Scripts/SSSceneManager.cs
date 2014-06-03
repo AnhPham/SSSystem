@@ -178,8 +178,8 @@ public class SSSceneManager : MonoBehaviour
 	protected GameObject m_Res;				// Resource object
 
 	protected int m_LoadingCount;			// Loading counter
-
 	protected bool m_IsBusy;				// Busy when scene is loading or scene-animation is playing.
+	protected string m_GlobalBgm;			// Global BGM
 	#endregion
 
 	#region Public Function
@@ -607,6 +607,20 @@ public class SSSceneManager : MonoBehaviour
 	{
 		return m_Scenes;
 	}
+
+	/// <summary>
+	/// Set the global bgm. All scenes will have same BGM until ClearGlobalBgm() called.
+	/// </summary>
+	/// <param name="bgmName">Bgm name.</param>
+	public void SetGlobalBgm(string bgmName)
+	{
+		m_GlobalBgm = bgmName;
+	}
+
+	public void ClearGlobalBgm()
+	{
+		m_GlobalBgm = string.Empty;
+	}
 	#endregion
 
 	#region Protected Function
@@ -616,6 +630,7 @@ public class SSSceneManager : MonoBehaviour
 	protected virtual void Awake()
 	{
 		m_Instance = this;
+		m_GlobalBgm = string.Empty;
 
 		m_SolidCamera = Instantiate (Resources.Load ("SolidCamera")) as GameObject;
 		m_SolidCamera.name = "SolidCamera";
@@ -1094,46 +1109,60 @@ public class SSSceneManager : MonoBehaviour
 
 	private void BgmSceneOpen(string curBgm, SSController ctrl)
 	{
-		switch (ctrl.BgmType) 
+		if (!string.IsNullOrEmpty (m_GlobalBgm))
 		{
-			case Bgm.NONE:
-				StopBGM();
-				break;
+			PlayBGM (m_GlobalBgm);
+		}
+		else
+		{
+			switch (ctrl.BgmType)
+			{
+				case Bgm.NONE:
+					StopBGM ();
+					break;
 
-			case Bgm.PLAY:
-				ctrl.CurrentBgm = ctrl.BgmName;
-				if (!string.IsNullOrEmpty(ctrl.BgmName) )
-			    {
-					PlayBGM(ctrl.BgmName);
-				}
-				break;
+				case Bgm.PLAY:
+					ctrl.CurrentBgm = ctrl.BgmName;
+					if (!string.IsNullOrEmpty (ctrl.BgmName))
+					{
+						PlayBGM (ctrl.BgmName);
+					}
+					break;
 
-			case Bgm.SAME:
-				ctrl.CurrentBgm = curBgm;
-				break;
-			case Bgm.CUSTOM:
-				StopBGM();
-				ctrl.CurrentBgm = ctrl.BgmName;
-				break;
+				case Bgm.SAME:
+					ctrl.CurrentBgm = curBgm;
+					break;
+				case Bgm.CUSTOM:
+					StopBGM ();
+					ctrl.CurrentBgm = ctrl.BgmName;
+					break;
+			}
 		}
 	}
 
 	private void BgmSceneClose(SSController ctrl)
 	{
-		switch (ctrl.BgmType) 
+		if (!string.IsNullOrEmpty (m_GlobalBgm))
 		{
-			case Bgm.NONE:
-				StopBGM();
-				break;
+			// Do nothing
+		}
+		else
+		{
+			switch (ctrl.BgmType)
+			{
+				case Bgm.NONE:
+					StopBGM ();
+					break;
 
-			case Bgm.PLAY:
-			case Bgm.SAME:
-			case Bgm.CUSTOM:
-				if (!string.IsNullOrEmpty(ctrl.CurrentBgm) )
-				{
-					PlayBGM(ctrl.CurrentBgm);
-				}
-				break;
+				case Bgm.PLAY:
+				case Bgm.SAME:
+				case Bgm.CUSTOM:
+					if (!string.IsNullOrEmpty (ctrl.CurrentBgm))
+					{
+						PlayBGM (ctrl.CurrentBgm);
+					}
+					break;
+			}
 		}
 	}
 

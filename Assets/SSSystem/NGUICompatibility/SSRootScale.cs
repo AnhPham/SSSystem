@@ -69,7 +69,7 @@ public class SSRootScale : SSRoot
 		m_Roots = GetRoots ();
 
 		// Trick Root
-		TrickUIRoot ();
+		DisableUIRoot ();
 
 		// Refresh
 		Refresh ();
@@ -81,7 +81,7 @@ public class SSRootScale : SSRoot
 		base.Start ();
 	}
 
-	private void TrickUIRoot()
+	private void DisableUIRoot()
 	{
 		foreach (GameObject root in m_Roots)
 		{
@@ -89,7 +89,6 @@ public class SSRootScale : SSRoot
 			if (uiroot != null)
 			{
 				uiroot.enabled = false;
-				uiroot.enabled = true;
 			}
 		}
 	}
@@ -100,10 +99,6 @@ public class SSRootScale : SSRoot
 		{
 			Refresh ();
 		}
-	}
-
-	private void LateUpdate()
-	{
 		UpdateScale ();
 	}
 

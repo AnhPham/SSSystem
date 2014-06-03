@@ -1,6 +1,10 @@
-SS-SYSTEM VERSION 1.2.1
+SS-SYSTEM VERSION 1.2.2
 
 RELEASE NOTES:
+
+Version 1.2.2
+- (NEW) SSSceneManager: Add SetGlobalBgm() and ClearGlobalBgm().
+- (FIX) SSRootScale: Fixed a bug which not work fine with the newest NGUI versions.
 
 Version 1.2.1
 - (IMPORTANT) Made a big change in SSSceneManager for resolving the problem of 1-frame delay in OnSet method.
