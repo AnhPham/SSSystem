@@ -14,6 +14,12 @@ public class SSAnimation : SSMotion
 	[SerializeField]
 	private AnimationClip m_HideClip;
 
+	[SerializeField]
+	private AnimationClip m_ShowBackClip;
+
+	[SerializeField]
+	private AnimationClip m_HideBackClip;
+
 	float m_TimeAtLastFrame = 0F;
 	float m_TimeAtCurrentFrame = 0F;
 	float m_DeltaTime = 0F;
@@ -55,6 +61,40 @@ public class SSAnimation : SSMotion
 	public override void PlayHide()
 	{
 		Play(m_HideClip);
+	}
+
+	/// <summary>
+	/// Time of show back - animation by second.
+	/// </summary>
+	/// <returns>Time show.</returns>
+	public override float TimeShowBack()
+	{
+		return Time(m_ShowBackClip);
+	}
+
+	/// <summary>
+	/// Time of hide back - animation by second.
+	/// </summary>
+	/// <returns>Time hide.</returns>
+	public override float TimeHideBack()
+	{
+		return Time(m_HideBackClip);
+	}
+
+	/// <summary>
+	/// Play the the show back - animation.
+	/// </summary>
+	public override void PlayShowBack()
+	{
+		Play(m_ShowBackClip);
+	}
+
+	/// <summary>
+	/// Play the the hide back - animation.
+	/// </summary>
+	public override void PlayHideBack()
+	{
+		Play(m_HideBackClip);
 	}
 
 	/// <summary>

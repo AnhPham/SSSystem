@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class SS1 : SSController 
+public class SS3 : SSController 
 {
 	public override void Awake ()
 	{
@@ -13,6 +13,6 @@ public class SS1 : SSController
 
 	public override void OnSet (object data)
 	{
-		Debug.Log("Set data : SS1");
+		Debug.Log("Set data : SS3");
 	}
 }

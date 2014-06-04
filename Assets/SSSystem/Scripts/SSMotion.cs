@@ -60,4 +60,36 @@ public class SSMotion : MonoBehaviour
 	public virtual void PlayHide()
 	{
 	}
+
+	/// <summary>
+	/// Time of show back - animation by second.
+	/// </summary>
+	/// <returns>Time show.</returns>
+	public virtual float TimeShowBack()
+	{
+		return 0;
+	}
+
+	/// <summary>
+	/// Time of hide back - animation by second.
+	/// </summary>
+	/// <returns>Time hide.</returns>
+	public virtual float TimeHideBack()
+	{
+		return 0;
+	}
+
+	/// <summary>
+	/// Play the the show back - animation.
+	/// </summary>
+	public virtual void PlayShowBack()
+	{
+	}
+
+	/// <summary>
+	/// Play the the hide back - animation.
+	/// </summary>
+	public virtual void PlayHideBack()
+	{
+	}
 }

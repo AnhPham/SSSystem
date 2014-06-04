@@ -1,4 +1,4 @@
-SS-System 1.2.1
+SS-System 1.3.0
 ========
 
 SS-System for Unity: Scene &amp; UI Manager!
@@ -6,6 +6,19 @@ SS-System for Unity: Scene &amp; UI Manager!
 ---
 
 <b>RELEASE NOTES:</b>
+
+Version 1.3.0
+
+- <b>(IMPORTANT)</b> Made a big change to support <b>'Switch View Animation'</b> looks like when you tap an item on the list of iOS.
+It works only with 'Sub-Screens' of SS-System, which become a stack now. 
+SSMotion & SSAnimation now have 4 slots for adding animations.
+I also included two more default slide animations, now we have four ones, just drag them correspondingly to SSAnimation of your scene.
+Call SubScreen(scene 1) then SubScreen(scene 2) for example.
+
+Version 1.2.2
+
+- (NEW) SSSceneManager: Add SetGlobalBgm() and ClearGlobalBgm().
+- (FIX) SSRootScale: Fixed a bug which not work fine with the newest NGUI versions.
 
 Version 1.2.1
 

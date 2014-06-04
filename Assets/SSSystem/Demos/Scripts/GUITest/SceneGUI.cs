@@ -40,6 +40,11 @@ public class SceneGUI : MonoBehaviour
 			SubScreenS2();
 		}
 
+		if (GUILayout.Button("Sub 3"))
+		{
+			SubScreenS3();
+		}
+
 		if (GUILayout.Button("PopUp 1"))
 		{
 			PopUpP1();
@@ -175,7 +180,7 @@ public class SceneGUI : MonoBehaviour
 
 	private void CloseSub()
 	{
-		SSSceneManager.Instance.CloseSubScene();
+		SSSceneManager.Instance.CloseSub();
 	}
 
 	private void ScreenS1()
@@ -196,6 +201,11 @@ public class SceneGUI : MonoBehaviour
 	private void SubScreenS2()
 	{
 		SSSceneManager.Instance.SubScreen("SS2");
+	}
+
+	private void SubScreenS3()
+	{
+		SSSceneManager.Instance.SubScreen("SS3");
 	}
 
 	private void Menu()

@@ -20,8 +20,50 @@ public enum SceneType
 	POPUP,
 	MENU,
 	CLOSE,
+	CLOSE_SUB,
 	RESET,
 	RES
+}
+
+public enum Bgm
+{
+	/// <summary>
+	/// When the scene changed, turn off BGM.
+	/// </summary>
+	NONE,
+
+	/// <summary>
+	/// When the scene changed, BGM will not be changed.
+	/// </summary>
+	SAME,
+
+	/// <summary>
+	/// When the scene changed, play a new BGM.
+	/// </summary>
+	PLAY,
+
+	/// <summary>
+	/// When the scene changed, turn off BGM.
+	/// You will play BGM by your own code.
+	/// You must to set the BgmName for SSController.
+	/// </summary>
+	CUSTOM
+}
+
+public enum ForceType
+{
+	NO_FORCE,
+	FORCE_DESTROY,
+	FORCE_NO_DESTROY
+}
+
+public enum AnimType
+{
+	NO_ANIM,
+	SHOW,
+	SHOW_BACK,
+	HIDE,
+	HIDE_BACK
 }
 
 public class SceneData
@@ -82,31 +124,6 @@ public class CallbackData
 	}
 }
 
-public enum Bgm
-{
-	/// <summary>
-	/// When the scene changed, turn off BGM.
-	/// </summary>
-	NONE,
-
-	/// <summary>
-	/// When the scene changed, BGM will not be changed.
-	/// </summary>
-	SAME,
-
-	/// <summary>
-	/// When the scene changed, play a new BGM.
-	/// </summary>
-	PLAY,
-
-	/// <summary>
-	/// When the scene changed, turn off BGM.
-	/// You will play BGM by your own code.
-	/// You must to set the BgmName for SSController.
-	/// </summary>
-	CUSTOM
-}
-
 public class SSSceneManager : MonoBehaviour 
 {
 	#region Const
@@ -163,6 +180,7 @@ public class SSSceneManager : MonoBehaviour
 
 	#region Protected Member
 	protected Stack<string> 					m_Stack = new Stack<string>();					// Popup stack
+	protected Stack<string> 					m_StackSub = new Stack<string>();				// Sub-screen stack
 	protected Queue<SceneData> 					m_Queue = new Queue<SceneData>();				// Command queue
 	protected List<GameObject> 					m_ListShield = new List<GameObject>();			// List Shield
 	protected Dictionary<string, GameObject> 	m_Dict = new Dictionary<string, GameObject>();	// Dictionary of loaded scenes
@@ -170,7 +188,6 @@ public class SSSceneManager : MonoBehaviour
 	protected GameObject m_Scenes;			// Scene container object
 	protected GameObject m_Shields;			// Shield container object
 	protected GameObject m_Menu;			// Menu object
-	protected GameObject m_Sub;				// Current sub-scene object
 	protected GameObject m_ShieldTop;		// Shield top object
 	protected GameObject m_Loading;			// Loading object
 	protected GameObject m_LoadingBack;		// Loading back object
@@ -213,13 +230,13 @@ public class SSSceneManager : MonoBehaviour
 		{
 			string p = m_Stack.Pop();
 
-			StartCoroutine(CloseScene (p, true));
+			CloseScene (p, true);
 
 			ShieldOff();
 		}
 
-		// Remove current sub
-		CloseSubScene ();
+		// Remove all sub
+		CloseAllSubScene ();
 
 		// Raise event
 		if (onScreenStartChange != null)
@@ -269,14 +286,14 @@ public class SSSceneManager : MonoBehaviour
 				string p = m_Stack.Pop();
 
 				bool isScreen = (m_Stack.Count == 0);
-				bool isForceDestroy = isScreen;
+				ForceType force = (isScreen) ? ForceType.FORCE_DESTROY : ForceType.NO_FORCE;
 
-				StartCoroutine(CloseScene (p, true, isForceDestroy));
+				CloseScene (p, true, force);
 				ShieldOff();
 			}
 
-			// Remove current sub
-			CloseSubScene ();
+			// Remove all sub
+			CloseAllSubScene ();
 
 			IEScreen(sn, data, onActive, onDeactive);
 		}
@@ -299,14 +316,11 @@ public class SSSceneManager : MonoBehaviour
 			return;
 		}
 
-		if (m_Sub != null && string.Compare(sn, m_Sub.name) == 0)
+		if (IsExistSub(sn))
 		{
 			Dequeue();
 			return;
 		}
-
-		// Remove current sub
-		CloseSubScene ();
 
 		m_IsBusy = true;
 
@@ -468,15 +482,35 @@ public class SSSceneManager : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Closes the current sub-scene.
+	/// Closes all sub scene.
 	/// </summary>
-	public void CloseSubScene()
+	public void CloseAllSubScene()
 	{
-		if (m_Sub != null)
+		while (m_StackSub.Count > 0) 
 		{
-			StartCoroutine (CloseScene (m_Sub.name, true));
-			m_Sub = null;
+			string top = m_StackSub.Pop ();
+
+			if (!string.IsNullOrEmpty (top)) 
+			{
+				CloseScene (top, true);
+			}
 		}
+	}
+
+	/// <summary>
+	/// Close sub.
+	/// </summary>
+	public void CloseSub(bool immediate = false)
+	{
+		if (m_IsBusy) 
+		{
+			Enqueue(null, immediate, null, null, SceneType.CLOSE_SUB);
+			return;
+		}
+
+		m_IsBusy = true;
+
+		StartCoroutine(IECloseSub(immediate));
 	}
 
 	/// <summary>
@@ -812,18 +846,7 @@ public class SSSceneManager : MonoBehaviour
 	{
 		if (m_Dict.ContainsKey(sn))
 		{
-			ActiveScene(sn);
-
-			// Animation
-			SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
-			if (an != null)
-			{
-				// We should bring this scene to somewhere far when re-active it.
-				// Then the animation will automatically bring it back at next frame.
-				// This trick remove flicker at the first frame.
-				an.transform.localPosition = new Vector3(99999, 0, 0);
-				an.transform.localScale = Vector3.one;
-			}
+			ActiveScene (sn);
 
 			onLoaded ();
 		}
@@ -847,14 +870,32 @@ public class SSSceneManager : MonoBehaviour
 	private void ActiveScene(string sn)
 	{
 		m_Dict[sn].SetActive(true);
+
+		// Animation
+		SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
+		if (an != null)
+		{
+			// We should bring this scene to somewhere far when re-active it.
+			// Then the animation will automatically bring it back at next frame.
+			// This trick remove flicker at the first frame.
+			an.transform.localPosition = new Vector3(99999, 0, 0);
+			an.transform.localScale = Vector3.one;
+		}
 	}
 
-	private void DeactiveOrDestroy(string sn, bool forceDestroy = false)
+	private void DeactiveOrDestroy(string sn, ForceType force = ForceType.NO_FORCE)
 	{
 		bool isCache = true;
 
 		GameObject sc = m_Dict[sn];
 		SSController ct = sc.GetComponentInChildren<SSController>();
+
+		// Set Event
+		if (ct != null)
+		{
+			if (ct.OnDeactive != null) ct.OnDeactive(ct);
+		}
+
 		sc.SetActive(false);
 
 		if (ct != null)
@@ -862,15 +903,34 @@ public class SSSceneManager : MonoBehaviour
 			isCache = ct.IsCache;
 		}
 
-		if (!isCache || forceDestroy)
+		if (force != ForceType.FORCE_NO_DESTROY) 
 		{
-			m_Dict.Remove(sn);
-			OnSceneUnload (sc);
-			Destroy(sc);
+			if (!isCache || force == ForceType.FORCE_DESTROY)
+			{
+				m_Dict.Remove(sn);
+				OnSceneUnload (sc);
+				Destroy(sc);
+			}
 		}
 	}
 
-	private IEnumerator CloseScene(string sn, bool immediate, bool isForceDestroy = false)
+	/// <summary>
+	/// Hides the sub back.
+	/// </summary>
+	private void HideSubBack(NoParamCallback callback = null)
+	{
+		if (m_StackSub.Count > 0) 
+		{
+			string top = m_StackSub.Peek ();
+
+			if (!string.IsNullOrEmpty (top)) 
+			{
+				CloseScene (top, false, ForceType.FORCE_NO_DESTROY, AnimType.HIDE_BACK, callback);
+			}
+		}
+	}
+
+	private void CloseScene(string sn, bool immediate, ForceType force = ForceType.NO_FORCE, AnimType animType = AnimType.HIDE, NoParamCallback callback = null)
 	{
 		// Event
 		SSController ct = m_Dict[sn].GetComponentInChildren<SSController>();
@@ -882,22 +942,23 @@ public class SSSceneManager : MonoBehaviour
 		// Play Animation
 		if (!immediate)
 		{
-			SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
-			if (an != null)
+			StartCoroutine( IEPlayAnimation (sn, animType, () => 
 			{
-				an.PlayHide();
-				yield return StartCoroutine (Pause (an.TimeHide()));
-			}
-		}
+				// Deactive or Destroy
+				DeactiveOrDestroy(sn, force);
 
-		// Set Event
-		if (ct != null)
+				if (callback != null)
+					callback();
+			}));
+		}
+		else
 		{
-			if (ct.OnDeactive != null) ct.OnDeactive(ct);
-		}
+			// Deactive or Destroy
+			DeactiveOrDestroy(sn, force);
 
-		// Deactive or Destroy
-		DeactiveOrDestroy(sn, isForceDestroy);
+			if (callback != null)
+				callback();
+		}
 	}
 
 	private GameObject CreateShield(int i)
@@ -970,6 +1031,14 @@ public class SSSceneManager : MonoBehaviour
 
 		// Lock
 		LockTopScene ();
+	}
+
+	private bool IsShieldActive(int i)
+	{
+		if (i >= m_ListShield.Count)
+			return false;
+
+		return (m_ListShield [i].activeInHierarchy);
 	}
 
 	private void ShieldOff()
@@ -1097,6 +1166,22 @@ public class SSSceneManager : MonoBehaviour
 		return false;
 	}
 
+	private bool IsExistSub(string sn)
+	{
+		return m_StackSub.Contains (sn);
+	}
+
+	private bool IsTopSub(string sn)
+	{
+		if (m_StackSub.Count > 0) 
+		{
+			if (m_StackSub.Peek () == sn)
+				return true;
+		}
+
+		return false;
+	}
+
 	private bool IsPopUpShowed(string sn)
 	{
 		foreach (string s in m_Stack)
@@ -1189,9 +1274,6 @@ public class SSSceneManager : MonoBehaviour
 
 	private void IECommon(string sn, int ip, float ic, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
 	{
-		// Wait to avoid flicker
-		//yield return new WaitForEndOfFrame();
-
 		// Defaut BGM
 		string curBgm = string.Empty;
 
@@ -1241,7 +1323,7 @@ public class SSSceneManager : MonoBehaviour
 			ShieldOn (ip, new Color(0, 0, 0, 0));
 
 			// Play if has animation
-			StartCoroutine(IEPlayAnimation(sn, () =>
+			StartCoroutine(IEPlayAnimation(sn, AnimType.SHOW, () =>
 			{
 				// Deactive Empty Shield
 				ShieldOff ();
@@ -1274,20 +1356,146 @@ public class SSSceneManager : MonoBehaviour
 		});
 	}
 
-	private IEnumerator IEPlayAnimation(string sn, NoParamCallback callback)
+	private void IECommonSub(string sn, int ip, float ic, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
+	{
+		// Defaut BGM
+		string curBgm = string.Empty;
+
+		// Active Shield
+		bool isShieldActived = IsShieldActive (0);
+
+		// Active Empty shield
+		if (!isShieldActived)
+			ShieldOn (0, new Color(0, 0, 0, 0));
+
+		// Load or active scene
+		LoadScene (sn, () =>
+		{
+			// Focus lost
+			if (isInStack && m_StackSub.Count > 0)
+			{
+				string s = m_StackSub.Peek();
+				SSController c = m_Dict[s].GetComponentInChildren<SSController>();
+				if (c != null)
+				{
+					curBgm = c.CurrentBgm;
+					c.OnFocusLost();
+				}
+			}
+
+			// Hide Stack top
+			HideSubBack();
+
+			// Set Position
+			SetPosition(sn, ip);
+
+			// Set Cameras
+			SetCameras(sn, ic);
+
+			if (isInStack)
+			{
+				// Add to Stack
+				m_StackSub.Push(sn);
+			}
+
+			// Set event & data
+			SSController ct = m_Dict[sn].GetComponentInChildren<SSController>();
+			if (ct != null)
+			{
+				ct.OnActive = onActive;
+				ct.OnDeactive = onDeactive;
+
+				if (ct.OnActive != null) ct.OnActive(ct);
+
+				ct.OnSet(data);
+			}
+
+			// No animation if is first sub-scene of stack
+			AnimType animType = (m_StackSub.Count == 1) ? AnimType.NO_ANIM : AnimType.SHOW;
+
+			// Play if has animation
+			StartCoroutine(IEPlayAnimation(sn, animType, () =>
+			{
+				// Deactive Empty Shield
+				if (!isShieldActived)
+					ShieldOff ();
+
+				// Event
+				if (ct != null)
+				{
+					if (isInStack)
+					{
+						BgmSceneOpen(curBgm, ct);
+					}
+					ct.OnShow();
+				}
+
+				// Busy off
+				m_IsBusy = false;
+
+				// Set something by type
+				SetByType(sn, type);
+
+				// Event
+				if (onSceneActived != null)
+				{
+					onSceneActived(sn);
+				}
+
+				// Check queue
+				Dequeue();
+			}));
+		});
+	}
+
+	private IEnumerator IEPlayAnimation(string sn, AnimType animType, NoParamCallback callback = null)
 	{
 		SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
-		if (an != null)
+		if (an != null && animType != AnimType.NO_ANIM)
 		{
 			yield return null;
-			an.PlayShow ();
-			yield return StartCoroutine (Pause (an.TimeShow ()));
 
-			callback ();
+			NoParamCallback play = null;
+			float time = 0;
+
+			switch (animType) 
+			{
+				case AnimType.SHOW:
+					play = an.PlayShow;
+					time = an.TimeShow ();
+					break;
+				case AnimType.SHOW_BACK:
+					play = an.PlayShowBack;
+					time = an.TimeShowBack ();
+					break;
+				case AnimType.HIDE:
+					play = an.PlayHide;
+					time = an.TimeHide ();
+					break;
+				case AnimType.HIDE_BACK:
+					play = an.PlayHideBack;
+					time = an.TimeHideBack ();
+					break;
+			}
+
+			if (play != null)
+			{
+				play ();
+			}
+			yield return StartCoroutine (Pause (time));
+
+			if (callback != null)
+				callback ();
 		}
 		else
 		{
-			callback ();
+			if (animType == AnimType.NO_ANIM) 
+			{
+				an.transform.localPosition = Vector3.zero;
+			}
+
+			if (callback != null)
+				callback ();
 		}
 	}
 
@@ -1315,13 +1523,13 @@ public class SSSceneManager : MonoBehaviour
 	private void IEMenu(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
 	{
 		// Common
-		IECommon(sn, -1, 0.6f, data, onActive, onDeactive, SceneType.MENU, false);
+		IECommon(sn, -1, 0.8f, data, onActive, onDeactive, SceneType.MENU, false);
 	}
 
 	private void IESubScreen(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
 	{
 		// Common
-		IECommon(sn, -2, 0.3f, data, onActive, onDeactive, SceneType.SUB_SCREEN, false);
+		IECommonSub(sn, -2 - m_StackSub.Count, 0.3f + (float)m_StackSub.Count / DEPTH_DISTANCE, data, onActive, onDeactive, SceneType.SUB_SCREEN, true);
 	}
 
 	private IEnumerator IEClose(bool immediate)
@@ -1349,44 +1557,118 @@ public class SSSceneManager : MonoBehaviour
 		string sn = m_Stack.Peek();
 
 		// Deactive Scene
-		yield return StartCoroutine( CloseScene (sn, immediate));
+		CloseScene (sn, immediate, ForceType.NO_FORCE, AnimType.HIDE, () => 
+		{
+			// Deactive Empty shield
+			ShieldOff();
 
-		// Deactive Empty shield
-		ShieldOff();
+			// Stack pop
+			sn = m_Stack.Pop();
+
+			// Focus back
+			if (m_Stack.Count > 0)
+			{
+				string s = m_Stack.Peek();
+				SSController c = m_Dict[s].GetComponentInChildren<SSController>();
+				if (c != null)
+				{
+					BgmSceneClose(c);
+					c.OnFocusBack();
+				}
+			}
+
+			// Deactive Shield
+			ShieldOff();
+
+			// Busy off
+			m_IsBusy = false;
+
+			// Event
+			if (m_Stack.Count > 0)
+			{
+				string s = m_Stack.Peek();
+				if (onSceneActived != null)
+				{
+					onSceneActived (s);
+				}
+			}
+
+			// Check queue
+			Dequeue();
+		});
+	}
+
+	private IEnumerator IECloseSub(bool immediate)
+	{
+		// Nothing to close
+		if (m_StackSub.Count == 0) 
+		{
+			m_IsBusy = false;
+			yield break;
+		}
+
+		// Lowest layer: Quit
+		if (m_StackSub.Count == 1) 
+		{
+			m_IsBusy = false;
+			Debug.Log("Application.Quit");
+			Application.Quit();
+			yield break;
+		}
+
+		// Current state of shield 0
+		bool isShieldActived = IsShieldActive (0);
+
+		// Active Empty shield
+		ShieldOn (0, new Color(0, 0, 0, 0));
 
 		// Stack pop
-		sn = m_Stack.Pop();
+		string sn = m_StackSub.Pop();
 
-		// Focus back
-		if (m_Stack.Count > 0)
+		// Deactive Scene
+		CloseScene (sn, immediate, ForceType.NO_FORCE, AnimType.HIDE, () => 
 		{
-			string s = m_Stack.Peek();
-			SSController c = m_Dict[s].GetComponentInChildren<SSController>();
-			if (c != null)
+			// Deactive Empty shield
+			if (!isShieldActived) 
 			{
-				BgmSceneClose(c);
-				c.OnFocusBack();
+				ShieldOff ();
 			}
-		}
 
-		// Deactive Shield
-		ShieldOff();
-
-		// Busy off
-		m_IsBusy = false;
-
-		// Event
-		if (m_Stack.Count > 0)
-		{
-			string s = m_Stack.Peek();
-			if (onSceneActived != null)
+			// Focus back
+			if (m_StackSub.Count > 0)
 			{
-				onSceneActived (s);
+				string s = m_StackSub.Peek();
+				SSController c = m_Dict[s].GetComponentInChildren<SSController>();
+				if (c != null)
+				{
+					BgmSceneClose(c);
+					c.OnFocusBack();
+				}
 			}
-		}
 
-		// Check queue
-		Dequeue();
+			// Busy off
+			m_IsBusy = false;
+
+			// Event
+			if (m_StackSub.Count > 0)
+			{
+				string s = m_StackSub.Peek();
+				if (onSceneActived != null)
+				{
+					onSceneActived (s);
+				}
+			}
+
+			// Check queue
+			Dequeue();
+		});
+
+		// Top of stack
+		sn = m_StackSub.Peek();
+
+		// Active scene
+		ActiveScene (sn);
+		StartCoroutine (IEPlayAnimation (sn, AnimType.SHOW_BACK));
 	}
 
 	private void IERes(string sn)
@@ -1412,7 +1694,6 @@ public class SSSceneManager : MonoBehaviour
 				HideLoadingBack ();
 				break;
 			case SceneType.SUB_SCREEN:
-				m_Sub = m_Dict[sn];
 				break;
 			case SceneType.POPUP:
 				break;
@@ -1420,6 +1701,8 @@ public class SSSceneManager : MonoBehaviour
 				m_Menu = m_Dict[sn];
 				break;
 			case SceneType.CLOSE:
+				break;
+			case SceneType.CLOSE_SUB:
 				break;
 			case SceneType.RESET:
 				HideLoadingBack ();
@@ -1487,6 +1770,9 @@ public class SSSceneManager : MonoBehaviour
 				break;
 		case SceneType.CLOSE:
 				Close((bool)sd.Data);
+				break;
+		case SceneType.CLOSE_SUB:
+				CloseSub((bool)sd.Data);
 				break;
 		case SceneType.RESET:
 				Reset(sd.Data, sd.OnActive, sd.OnDeactive);
