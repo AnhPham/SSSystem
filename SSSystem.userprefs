@@ -1,14 +1,6 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="../../Projects/Kayac/Unity3D/kakusen-kun2/apps/unity/projects/trunk/Assets/SSSystem/Scripts/SSSceneManager.cs">
-    <Files>
-      <File FileName="../../Projects/Kayac/Unity3D/MTemplate 2013-11-26 2135/Assets/CasualGame/Scenes/1_TopScene/Script/TopSceneController.cs" Line="1" Column="1" />
-      <File FileName="Assets/SSSystem/Scripts/SSSceneManager.cs" Line="1" Column="1" />
-      <File FileName="Assets/SSSystem/ss_version.txt" Line="1" Column="1" />
-      <File FileName="Assets/_Project/_Libs/NGUI/Scripts/UI/UICamera.cs" Line="1" Column="1" />
-      <File FileName="../../Projects/Kayac/Unity3D/kakusen-kun2/apps/unity/projects/trunk/Assets/SSSystem/Scripts/SSSceneManager.cs" Line="1" Column="1" />
-    </Files>
-  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workbench />
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>

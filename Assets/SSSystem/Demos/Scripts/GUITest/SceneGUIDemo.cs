@@ -1,10 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class SceneGUI : MonoBehaviour 
+public class SceneGUIDemo : MonoBehaviour 
 {
-	private bool isLoadedMenu;
-
 	protected virtual void OnGUIExtend()
 	{
 	}
@@ -15,34 +13,29 @@ public class SceneGUI : MonoBehaviour
 
 		OnGUIExtend ();
 
-		if (GUILayout.Button("Screen 1"))
+		if (GUILayout.Button("Screen 1_1"))
 		{
 			ScreenS1();
 		}
 
-		if (GUILayout.Button("Screen 2"))
+        if (GUILayout.Button("Add Screen 1_2"))
+        {
+            AddScreen12();
+        }
+
+		if (GUILayout.Button("Screen 2_1"))
 		{
 			ScreenS2();
 		}
 
+        if (GUILayout.Button("Add Screen 2_2"))
+        {
+            AddScreen22();
+        }
+
 		if (GUILayout.Button("Load Menu"))
 		{
 			Menu();
-		}
-
-		if (GUILayout.Button("Sub 1"))
-		{
-			SubScreenS1();
-		}
-
-		if (GUILayout.Button("Sub 2"))
-		{
-			SubScreenS2();
-		}
-
-		if (GUILayout.Button("Sub 3"))
-		{
-			SubScreenS3();
 		}
 
 		if (GUILayout.Button("PopUp 1"))
@@ -60,10 +53,10 @@ public class SceneGUI : MonoBehaviour
 			Close();
 		}
 
-		if (GUILayout.Button("Close Sub"))
-		{
-			CloseSub();
-		}
+        if (GUILayout.Button("Close"))
+        {
+            Close();
+        }
 
 		if (GUILayout.Button("Hide Menu"))
 		{
@@ -82,67 +75,43 @@ public class SceneGUI : MonoBehaviour
 
 		GUILayout.Space (20);
 
-		if (GUILayout.Button("Screen 1 + Sub 1 + Menu"))
-		{
-			ShowLoadingBlack ();
-			ScreenS1();
-			SubScreenS1();
-			Menu ();
-		}
-
 		if (GUILayout.Button("PopUp 1 & 2"))
 		{
 			PopUpP1();
 			PopUpP2();
 		}
 
-		if (GUILayout.Button("Screen 2"))
+		if (GUILayout.Button("Screen 1_2"))
 		{
-			ScreenS2();
+			ScreenS1(); // Current screen of this stack is Screen 1_2
 		}
 
-		if (GUILayout.Button("Hide Menu"))
+        if (GUILayout.Button("PopUp1 - Close"))
 		{
-			HideMenu();
+			PopUpP1();
+			Close ();
 		}
 
-		GUILayout.Space (20);
-
-		if (GUILayout.Button("SUPER"))
+		if (GUILayout.Button("Double PopUp2"))
 		{
-			ShowLoadingBlack ();
-			ScreenS1();
-			SubScreenS1();
-			Menu();
-			PopUpP1();
 			PopUpP2();
-			Close();
-			Close();
-			SubScreenS2 ();
-			ScreenS1();
-			SubScreenS1();
-			PopUpP1();
-			PopUpP2();
-			ScreenS2();
-			SubScreenS2();
-			PopUpP1();
-			PopUpP2();
-			Close();
-			Close();
-			ScreenS1();
-			SubScreenS2();
-			PopUpP1();
 			PopUpP2();
 		}
 
-		if (GUILayout.Button("Same popup"))
-		{
-			ScreenS2();
+        if (GUILayout.Button("Close"))
+        {
+            Close();
+        }
 
-			PopUpP1();
-			PopUpP1();
-			PopUpP1();
-		}
+        if (GUILayout.Button("Close"))
+        {
+            Close();
+        }
+
+        if (GUILayout.Button("Reset"))
+        {
+            Reset(); // Main screen of this stack is Screen 1_1
+        }
 
 		GUILayout.EndVertical ();
 	}
@@ -150,12 +119,6 @@ public class SceneGUI : MonoBehaviour
 	private void ShowLoading()
 	{
 		SSSceneManager.Instance.ShowLoading ();
-	}
-
-	private void ShowLoadingBlack()
-	{
-		if (isLoadedMenu) return;
-		SSSceneManager.Instance.ShowLoading (1);
 	}
 
 	private void HideLoading()
@@ -178,11 +141,6 @@ public class SceneGUI : MonoBehaviour
 		SSSceneManager.Instance.Close();
 	}
 
-	private void CloseSub()
-	{
-		SSSceneManager.Instance.CloseSub();
-	}
-
 	private void ScreenS1()
 	{
 		SSSceneManager.Instance.Screen("S1");
@@ -193,37 +151,19 @@ public class SceneGUI : MonoBehaviour
 		SSSceneManager.Instance.Screen("S2");
 	}
 
-	private void SubScreenS1()
+	private void AddScreen12()
 	{
-		SSSceneManager.Instance.SubScreen("SS1");
+		SSSceneManager.Instance.AddScreen("SS1");
 	}
 
-	private void SubScreenS2()
+	private void AddScreen22()
 	{
-		SSSceneManager.Instance.SubScreen("SS2");
-	}
-
-	private void SubScreenS3()
-	{
-		SSSceneManager.Instance.SubScreen("SS3");
+		SSSceneManager.Instance.AddScreen("SS2");
 	}
 
 	private void Menu()
 	{
-		SSSceneManager.Instance.LoadMenu
-		(
-			"Menu",
-			null, 
-			(SSController ctrl) => 
-			{
-				isLoadedMenu = true;
-				HideLoading();
-			},
-			(SSController ctrl) => 
-			{
-
-			}
-		);
+        SSSceneManager.Instance.LoadMenu("Menu");
 	}
 
 	private void PopUpP1()
@@ -249,6 +189,11 @@ public class SceneGUI : MonoBehaviour
 			}
 		);
 	}
+
+    private void Reset()
+    {
+        SSSceneManager.Instance.Reset();
+    }
 
 	private void OnP2LeftMouseClick()
 	{

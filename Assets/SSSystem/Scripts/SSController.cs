@@ -14,9 +14,9 @@ public class SSController : MonoBehaviour
 	#endregion
 
 	#region Config
-	public Bgm 		BgmType { get; protected set; }
-	public string 	BgmName { get; protected set; }
-	public bool 	IsCache { get; protected set; }
+	public Bgm 		BgmType { get; set; }
+	public string 	BgmName { get; set; }
+	public bool 	IsCache { get; set; }
 	#endregion
 
 	#region Public Member
@@ -152,5 +152,29 @@ public class SSController : MonoBehaviour
 	public virtual void OnKeyBack()
 	{
 		SSSceneManager.Instance.Close ();
+	}
+
+	/// <summary>
+	/// Visible after Invisible
+	/// </summary>
+	public virtual void Visible()
+	{
+		Camera[] cams = GetComponentsInChildren<Camera> ();
+		foreach (var cam in cams)
+		{
+			cam.enabled = true;
+		}
+	}
+
+	/// <summary>
+	/// Invisible without deactivating game object
+	/// </summary>
+	public virtual void Invisible()
+	{
+		Camera[] cams = GetComponentsInChildren<Camera> ();
+		foreach (var cam in cams) 
+		{
+			cam.enabled = false;
+		}
 	}
 }

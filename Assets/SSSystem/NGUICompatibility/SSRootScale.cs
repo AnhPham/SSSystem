@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 
 [ExecuteInEditMode]
 public class SSRootScale : SSRoot
@@ -47,6 +48,7 @@ public class SSRootScale : SSRoot
 	#region Private
 	Camera[] m_Cameras;
 	GameObject[] m_Roots;
+	GameObject[] m_Panels;
 	Rect currentRect;
 
 	bool isChanged;
@@ -58,6 +60,51 @@ public class SSRootScale : SSRoot
 	float screenAspectRatio;
 	float camera2DOrthographicSize = 1;
 	#endregion
+
+	#region Public Function
+	public float VisibleRealWidth()
+	{
+		RefreshCurrentAspectRatio ();
+
+		return Screen.height * currentAspectRatio;
+	}
+
+	public float VisibleLogicWidth()
+	{
+		float defaultAspectRatio = CalcAspectRatio (defaultAspect);
+		float w = defaultHeight * defaultAspectRatio;
+
+		return w;
+	}
+
+	public float FullRealWidth()
+	{
+		return Screen.width;
+	}
+
+	public float FullLogicWidth()
+	{
+		float h = LogicHeight ();
+		float w = h * Screen.width / Screen.height;
+
+		return w;
+	}
+		
+	public float LogicHeight()
+	{
+		float w = VisibleLogicWidth ();
+
+		RefreshCurrentAspectRatio ();
+
+		float h = w / currentAspectRatio;
+		return h;
+	}
+
+	public float FullRealHeight()
+	{
+		return Screen.height;
+	}
+	#endregion
 	
 	#region Private Function
 	protected override void Start()
@@ -68,8 +115,14 @@ public class SSRootScale : SSRoot
 		// Find all UIRoot in Scene
 		m_Roots = GetRoots ();
 
+		// Find all UIPanel in Scene
+		m_Panels = GetPanels ();
+
 		// Trick Root
 		DisableUIRoot ();
+
+		// RefreshCurrentAspectRatio
+		RefreshCurrentAspectRatio ();
 
 		// Refresh
 		Refresh ();
@@ -89,6 +142,7 @@ public class SSRootScale : SSRoot
 			if (uiroot != null)
 			{
 				uiroot.enabled = false;
+				uiroot.enabled = true;
 			}
 		}
 	}
@@ -97,16 +151,27 @@ public class SSRootScale : SSRoot
 	{
 		if (!Mathf.Approximately (screenAspectRatio, 1.0f * Screen.width / Screen.height))
 		{
-			Refresh ();
+			UpdateScale ();
 		}
-		UpdateScale ();
 	}
 
-	private void Refresh()
+	private void UpdateScale()
+	{
+		if (GetRoot2DScale () == Mathf.Infinity)
+			return;
+
+		RefreshCurrentAspectRatio ();
+		Refresh ();
+
+		SetRootHeight ();
+		SetPanelSize ();
+		SetCameraRect (currentRect);
+	}
+
+	private void RefreshCurrentAspectRatio()
 	{
 		screenAspectRatio = 1.0f * Screen.width / Screen.height;
 
-		float defaultAspectRatio = CalcAspectRatio (defaultAspect);
 		float wideAspectRatio = CalcAspectRatio (wideAspect);
 		float nallowAspectRatio = CalcAspectRatio (nallowAspect);
 
@@ -123,8 +188,13 @@ public class SSRootScale : SSRoot
 			currentAspectRatio = screenAspectRatio;
 		}
 
-		currentHeight = (int)(defaultHeight * defaultAspectRatio / currentAspectRatio);
+		float defaultAspectRatio = CalcAspectRatio (defaultAspect);
 
+		currentHeight = (int)(defaultHeight * defaultAspectRatio / currentAspectRatio);
+	}
+
+	private void Refresh()
+	{
 		float marginX = 0;
 		float marginY = 0;
 
@@ -154,65 +224,61 @@ public class SSRootScale : SSRoot
 				currentRect = new Rect (marginX, marginY, 1 - marginX * 2, 1 - marginY * 2);
 				break;
 		}
-
-		SetRects (currentRect);
 	}
 
-	private void SetRects(Rect rect)
+	private void SetCameraRect(Rect rect)
 	{
-		foreach (Camera camera2d in m_Cameras)
+		if (m_Cameras == null)
+			return;
+
+		foreach (Camera cam in m_Cameras)
 		{
-			camera2d.rect = rect;
-			camera2d.orthographicSize = this.camera2DOrthographicSize;
+			if (cam.GetComponent<SSDoNotTouchMe> () == null) 
+			{
+				cam.rect = rect;
+				cam.orthographicSize = this.camera2DOrthographicSize;
+			}
 		}
 	}
 
-	private float CalcAspectRatio(ASPECT aspect)
-	{
-		switch (aspect)
-		{
-			case ASPECT._1x2:
-				return 1.0f / 2;
-			case ASPECT._9x16:
-				return 9.0f / 16;
-			case ASPECT._2x3:
-				return 2.0f / 3;
-			case ASPECT._3x4:
-				return 3.0f / 4;
-			case ASPECT._1x1:
-				return 1;
-			case ASPECT._4x3:
-				return 4.0f / 3;
-			case ASPECT._3x2:
-				return 3.0f / 2;
-			case ASPECT._16x9:
-				return 16.0f / 9;
-			case ASPECT._2x1:
-				return 2.0f;
-			default:
-				return 1;
-		}
-	}
-
-	private void UpdateScale()
+	private void SetRootHeight()
 	{
 		if (m_Roots == null)
 			return;
 
-		float scale = this.GetRoot2DScale ();
-		if (scale == Mathf.Infinity)
-			return;
-
 		foreach (GameObject r in m_Roots)
 		{
-			#if UNITY_EDITOR
-			r.GetComponent ("UIRoot").GetType ().GetField ("scalingStyle").SetValue (r.GetComponent ("UIRoot"), 1);
-			r.GetComponent ("UIRoot").GetType ().GetField ("manualHeight").SetValue (r.GetComponent ("UIRoot"), defaultHeight);
-			#endif
-
-			if (!Mathf.Approximately (r.transform.localScale.x, scale))
+			if (r.GetComponent<SSDoNotTouchMe> () == null) 
 			{
-				r.transform.localScale = new Vector3 (scale, scale, scale);
+				MonoBehaviour uiroot = r.GetComponent ("UIRoot") as MonoBehaviour;
+
+				uiroot.GetType ().GetField ("scalingStyle").SetValue (uiroot, 1);
+				uiroot.GetType ().GetField ("manualHeight").SetValue (uiroot, currentHeight);
+			}
+		}
+	}
+
+	private void SetPanelSize()
+	{
+		if (m_Panels == null)
+			return;
+
+		foreach (GameObject p in m_Panels)
+		{
+			if (p.GetComponent<SSDoNotTouchMe> () == null) 
+			{
+				MonoBehaviour uipanel = p.GetComponent ("UIPanel") as MonoBehaviour;
+
+				if (uipanel != null) 
+				{
+                    float w = defaultHeight * CalcAspectRatio(defaultAspect);
+					float width = w + 2;
+					float height = w / currentAspectRatio;
+
+					uipanel.GetType ().InvokeMember ("clipping", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ 3 });
+                    uipanel.GetType ().InvokeMember ("clipSoftness", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ new Vector2(0, 0) });
+                    uipanel.GetType ().InvokeMember ("baseClipRegion", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ new Vector4 (0, 0, width, height) });
+				}
 			}
 		}
 	}
@@ -224,19 +290,56 @@ public class SSRootScale : SSRoot
 
 	private GameObject[] GetRoots()
 	{
-		List<GameObject> roots = new List<GameObject> ();
+		return GetObjectsByString ("UIRoot");
+	}
+
+	private GameObject[] GetPanels()
+	{
+		return GetObjectsByString ("UIPanel");
+	}
+
+	private GameObject[] GetObjectsByString(string className)
+	{
+		List<GameObject> objs = new List<GameObject> ();
 
 		Transform[] trans = GetComponentsInChildren<Transform> (true);
 		foreach (Transform t in trans)
 		{
-			Component c = t.GetComponent ("UIRoot");
+			Component c = t.GetComponent (className);
 			if (c != null)
 			{
-				roots.Add (c.gameObject);
+				objs.Add (c.gameObject);
 			}
 		}
 
-		return roots.ToArray ();
+		return objs.ToArray ();
+	}
+
+	private float CalcAspectRatio(ASPECT aspect)
+	{
+		switch (aspect)
+		{
+		case ASPECT._1x2:
+			return 1.0f / 2;
+		case ASPECT._9x16:
+			return 640f / 1136;
+		case ASPECT._2x3:
+			return 2f / 3;
+		case ASPECT._3x4:
+			return 3.0f / 4;
+		case ASPECT._1x1:
+			return 1;
+		case ASPECT._4x3:
+			return 4.0f / 3;
+		case ASPECT._3x2:
+			return 3.0f / 2;
+		case ASPECT._16x9:
+			return 1136.0f / 640;
+		case ASPECT._2x1:
+			return 2.0f;
+		default:
+			return 1;
+		}
 	}
 	#endregion
 }

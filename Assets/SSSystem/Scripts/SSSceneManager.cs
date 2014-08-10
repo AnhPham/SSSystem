@@ -1,5 +1,5 @@
 ﻿/**
- * Created by Anh Pham on 2013/11/13
+ * Created by Anh Pham on 2014/08/10
  * Email: anhpt.csit@gmail.com
  */
 
@@ -12,18 +12,6 @@ using System.Linq;
 public delegate void SSCallBackDelegate(SSController ctrl);
 public delegate void NoParamCallback ();
 #endregion
-
-public enum SceneType
-{
-	SCREEN,
-	SUB_SCREEN,
-	POPUP,
-	MENU,
-	CLOSE,
-	CLOSE_SUB,
-	RESET,
-	RES
-}
 
 public enum Bgm
 {
@@ -50,13 +38,6 @@ public enum Bgm
 	CUSTOM
 }
 
-public enum ForceType
-{
-	NO_FORCE,
-	FORCE_DESTROY,
-	FORCE_NO_DESTROY
-}
-
 public enum AnimType
 {
 	NO_ANIM,
@@ -64,52 +45,6 @@ public enum AnimType
 	SHOW_BACK,
 	HIDE,
 	HIDE_BACK
-}
-
-public class SceneData
-{
-	public string 				SceneName { get; private set; }
-	public object 				Data { get; private set; }
-	public SceneType 			Type { get; private set; }
-	public SSCallBackDelegate 	OnActive { get; private set; }
-	public SSCallBackDelegate 	OnDeactive { get; private set; }
-
-	public SceneData(string sn, object dt, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type)
-	{
-		SceneName = sn;
-		Data = dt;
-		Type = type;
-		OnActive = onActive;
-		OnDeactive = onDeactive;
-	}
-}
-
-public class PopUpData
-{
-	/// <summary>
-	/// Gets the data.
-	/// </summary>
-	/// <value>The data.</value>
-	public object Data { get; protected set; }
-
-	/// <summary>
-	/// If a same popup was showed already, you can add data to it & don't show this popup anymore.
-	/// </summary>
-	/// <value><c>true</c> if you want to add data to the same popup; otherwise, <c>false</c>.</value>
-	public bool IsAddData { get; protected set; }
-
-	/// <summary>
-	/// You can set to show this popup only when has no other popup.
-	/// </summary>
-	/// <value><c>true</c> if you only want to show this popup when has no other popup; otherwise, <c>false</c>.</value>
-	public bool IsWaitNoPopUp { get; protected set; }
-
-	public PopUpData(object data = null, bool isAddData = false, bool isWaitNoPopUp = false)
-	{
-		Data = data;
-		IsAddData = isAddData;
-		IsWaitNoPopUp = isWaitNoPopUp;
-	}
 }
 
 public class CallbackData
@@ -127,20 +62,18 @@ public class CallbackData
 public class SSSceneManager : MonoBehaviour 
 {
 	#region Const
-	protected int SCENE_DISTANCE = 5000;			// The distance of loaded scenes in Base Scene
+	protected int SCENE_DISTANCE = 1000;			// The distance of loaded scenes in Base Scene
 	protected int DEPTH_DISTANCE = 10;				// The camera depth distance of popup layers
 	protected int SHIELD_TOP_INDEX = 9;				// The index of shield top
 	#endregion
 
 	#region Delegate
 	public delegate void OnScreenStartChangeDelegate(string sceneName);
-	public delegate void OnSubScreenStartChangeDelegate(string sceneName);
 	public delegate void OnSceneActivedDelegate (string sceneName);
 	#endregion
 
 	#region Event
 	public OnScreenStartChangeDelegate onScreenStartChange;
-	public OnSubScreenStartChangeDelegate onSubScreenStartChange;
 	public OnSceneActivedDelegate onSceneActived;
 	#endregion
 
@@ -158,6 +91,12 @@ public class SSSceneManager : MonoBehaviour
 	protected string m_FirstSceneName;
 
 	/// <summary>
+	/// Home scene name	 (optional)
+	/// </summary>
+	[SerializeField]
+	protected string m_HomeSceneName;
+
+	/// <summary>
 	/// Default shield color.
 	/// </summary>
 	[SerializeField]
@@ -172,255 +111,86 @@ public class SSSceneManager : MonoBehaviour
 
 	#region Singleton
 	protected static SSSceneManager m_Instance;
-	public static SSSceneManager Instance			// Singleton
+	public static SSSceneManager Instance
 	{
 		get { return m_Instance; }
 	}
 	#endregion
 
 	#region Protected Member
-	protected Stack<string> 					m_Stack = new Stack<string>();					// Popup stack
-	protected Stack<string> 					m_StackSub = new Stack<string>();				// Sub-screen stack
-	protected Queue<SceneData> 					m_Queue = new Queue<SceneData>();				// Command queue
-	protected List<GameObject> 					m_ListShield = new List<GameObject>();			// List Shield
-	protected Dictionary<string, GameObject> 	m_Dict = new Dictionary<string, GameObject>();	// Dictionary of loaded scenes
+	protected Stack<string> 					m_StackPopUp = new Stack<string>();						// Popup stack
+	protected Stack<string> 					m_CurrentStackScreen = new Stack<string>();				// Popup stack
+	protected List<GameObject> 					m_ListShield = new List<GameObject>();					// List Shield
+	protected Dictionary<string, GameObject> 	m_DictAllScene = new Dictionary<string, GameObject>();	// Dictionary of loaded scenes
+	protected Dictionary<string, Stack<string>> m_DictScreen = new Dictionary<string, Stack<string>>();	// Screen dict
 
 	protected GameObject m_Scenes;			// Scene container object
 	protected GameObject m_Shields;			// Shield container object
 	protected GameObject m_Menu;			// Menu object
 	protected GameObject m_ShieldTop;		// Shield top object
-	protected GameObject m_Loading;			// Loading object
-	protected GameObject m_LoadingBack;		// Loading back object
+	protected GameObject m_ShieldEmpty;		// Shield empty object (higher all scene except top shield, alpha = 0)
+	protected GameObject m_LoadingTop;		// Loading top object
 	protected GameObject m_SolidCamera;		// Solid camera object (Lowest camera)
-	protected GameObject m_Res;				// Resource object
 
 	protected int m_LoadingCount;			// Loading counter
-	protected bool m_IsBusy;				// Busy when scene is loading or scene-animation is playing.
+	protected int m_ShieldEmptyCount;		// Shield empty counter
+	protected bool m_IsBusy;				// Busy when scene is loading or scene-animation is playing
+	protected bool m_CanClose;				// Force able to close even busy
 	protected string m_GlobalBgm;			// Global BGM
 	#endregion
 
 	#region Public Function
-	/// <summary>
-	/// Load or active a main-scene. All sub-scenes or popups which are showing will be deactive.
-	/// </summary>
-	/// <param name="sceneName">Scene name.</param>
-	/// <param name="data">Data type is object type, allows any object.</param>
-	/// <param name="onActive">OnActive callback.</param>
-	/// <param name="onDeactive">OnDeactive callback.</param>
-	public void Screen(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	public virtual void Screen (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
 	{
-		string sn = sceneName;
-
-		if (m_IsBusy) 
-		{
-			Enqueue(sn, data, onActive, onDeactive, SceneType.SCREEN);
-			return;
-		}
-
-		if (IsSameScreen(sn)) 
-		{
-			Dequeue();
-			return;
-		}
-
-		m_IsBusy = true;
-
-		// Remove from stack and deactive
-		while (m_Stack.Count > 0)
-		{
-			string p = m_Stack.Pop();
-
-			CloseScene (p, true);
-
-			ShieldOff();
-		}
-
-		// Remove all sub
-		CloseAllSubScene ();
-
-		// Raise event
-		if (onScreenStartChange != null)
-		{
-			onScreenStartChange (sceneName);
-		}
-
-		IEScreen(sn, data, onActive, onDeactive);
-	}
-	
-	/// <summary>
-	/// Reset a main-scene. All sub-scenes or popups which are showing will be deactive.
-	/// </summary>
-	/// <param name="sceneName">Scene name.</param>
-	/// <param name="data">Data type is object type, allows any object.</param>
-	/// <param name="onActive">OnActive callback.</param>
-	/// <param name="onDeactive">OnDeactive callback.</param>
-	[System.Obsolete("ResetScreen is deprecated, please use Reset instead.")]
-	public void ResetScreen(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
-	{
-		Reset (data, onActive, onDeactive);
+		StartCoroutine( IEScreen (sceneName, data, onActive, onDeactive) );
 	}
 
-	/// <summary>
-	/// Reset the current main-scene. All sub-scenes or popups which are showing will be deactive.
-	/// </summary>
-	/// <param name="data">Data type is object type, allows any object.</param>
-	/// <param name="onActive">OnActive callback.</param>
-	/// <param name="onDeactive">OnDeactive callback.</param>
-	public void Reset(object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
-	{
-		string sn = StackBottom ();
+    public virtual void Reset (object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+    {
+        CloseAllPopUp();
+        string sn = DestroyCurrentStack();
+        Screen(sn, data, onActive, onDeactive);
+    }
 
-		if (!string.IsNullOrEmpty (sn)) 
+	public virtual void AddScreen (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		StartCoroutine( IEAddScreen (sceneName, data, onActive, onDeactive) );
+	}
+
+	public virtual void PopUp (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		StartCoroutine( IEPopUp (sceneName, data, onActive, onDeactive) );
+	}
+
+	public virtual void LoadMenu (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		StartCoroutine( IELoadMenu (sceneName, data, onActive, onDeactive) );
+	}
+
+	public virtual void Close (bool immediate = false, NoParamCallback callback = null)
+	{
+		StartCoroutine( IEClose (immediate, callback) );
+	}
+
+	public virtual void GoHome()
+	{
+		if (!string.IsNullOrEmpty(m_HomeSceneName))
 		{
-			if (m_IsBusy) 
+			if (m_CurrentStackScreen.Peek () == m_HomeSceneName) 
 			{
-				Enqueue (sn, data, onActive, onDeactive, SceneType.RESET);
-				return;
-			}
-
-			m_IsBusy = true;
-
-			// Remove from stack and deactive
-			while (m_Stack.Count > 0)
-			{
-				string p = m_Stack.Pop();
-
-				bool isScreen = (m_Stack.Count == 0);
-				ForceType force = (isScreen) ? ForceType.FORCE_DESTROY : ForceType.NO_FORCE;
-
-				CloseScene (p, true, force);
-				ShieldOff();
-			}
-
-			// Remove all sub
-			CloseAllSubScene ();
-
-			IEScreen(sn, data, onActive, onDeactive);
-		}
-	}
-
-	/// <summary>
-	/// Load or active a sub-scene. The current sub-scenes which are showing will be deactive.
-	/// </summary>
-	/// <param name="sceneName">Scene name.</param>
-	/// <param name="data">Data type is object type, allows any object.</param>
-	/// <param name="onActive">OnActive callback.</param>
-	/// <param name="onDeactive">OnDeactive callback.</param>
-	public void SubScreen(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
-	{
-		string sn = sceneName;
-
-		if (m_IsBusy) 
-		{
-			Enqueue(sn, data, onActive, onDeactive, SceneType.SUB_SCREEN);
-			return;
-		}
-
-		if (IsExistSub(sn))
-		{
-			Dequeue();
-			return;
-		}
-
-		m_IsBusy = true;
-
-		// Raise event
-		if (onSubScreenStartChange != null)
-		{
-			onSubScreenStartChange (sceneName);
-		}
-
-		IESubScreen(sn, data, onActive, onDeactive);
-	}
-
-	/// <summary>
-	/// Load or active a popup.
-	/// </summary>
-	/// <param name="sceneName">Scene name.</param>
-	/// <param name="data">Data type is object type, allows any object.</param>
-	/// <param name="onActive">OnActive callback.</param>
-	/// <param name="onDeactive">OnDeactive callback.</param>
-	public void PopUp(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
-	{
-		string sn = sceneName;
-
-		if (m_IsBusy) 
-		{
-			Enqueue(sn, data, onActive, onDeactive, SceneType.POPUP);
-			return;
-		}
-
-		// If same popup
-		if (IsPopUpShowed(sn)) 
-		{
-			bool isAddingData = IsAddingData (data);
-
-			if (isAddingData)
-			{
-				GameObject sc = m_Dict [sn];
-				SSController ct = sc.GetComponentInChildren<SSController>();
-
-				if (ct != null)
-				{
-					ct.OnSetAdding (data);
-				}
-
-				Dequeue ();
+				Quit ();
 			}
 			else
 			{
-				Enqueue(sn, data, onActive, onDeactive, SceneType.POPUP);
+				OpenScreen (m_HomeSceneName);
 			}
-
-			return;
 		}
-
-		// Check is wait no popup
-		bool isWaitNoPopUp = IsWaitNoPopUp (data);
-
-		if (isWaitNoPopUp && m_Stack.Count >= 2)
+		else
 		{
-			Enqueue(sn, data, onActive, onDeactive, SceneType.POPUP);
-			return;
+			Quit ();
 		}
-
-		m_IsBusy = true;
-
-		IEPopUp(sn, data, onActive, onDeactive);
 	}
 
-	/// <summary>
-	/// Load a menu (only once).
-	/// </summary>
-	/// <param name="sceneName">Scene name.</param>
-	/// <param name="data">Data type is object type, allows any object.</param>
-	/// <param name="onActive">OnActive callback.</param>
-	/// <param name="onDeactive">OnDeactive callback.</param>
-	public void LoadMenu(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
-	{
-		string sn = sceneName;
-
-		if (m_IsBusy) 
-		{
-			Enqueue(sn, data, onActive, onDeactive, SceneType.MENU);
-			return;
-		}
-
-		if (m_Menu != null) 
-		{
-			ShowMenu ();
-			Dequeue();
-			return;
-		}
-
-		m_IsBusy = true;
-
-		IEMenu(sn, data, onActive, onDeactive);
-	}
-
-	/// <summary>
-	/// Shows the menu.
-	/// </summary>
 	public void ShowMenu()
 	{
 		if (m_Menu != null) 
@@ -429,9 +199,6 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	/// <summary>
-	/// Hides the menu.
-	/// </summary>
 	public void HideMenu()
 	{
 		if (m_Menu != null) 
@@ -440,18 +207,157 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
+	public void DestroyInactiveScenes(params string[] exceptList)
+	{
+		// Screen stacks
+        foreach (var screens in m_DictScreen)
+		{
+			string sn = screens.Key;
+			if (IsNotInExcept(sn, exceptList) && (screens.Value != null && screens.Value.Count != 0))
+			{
+				DestroyScenesFrom(sn);
+			}
+		}
+
+		// Rest scenes
+		string[] restList = new string[m_DictAllScene.Keys.Count];
+		m_DictAllScene.Keys.CopyTo(restList, 0);
+
+		foreach (var sn in restList)
+		{
+			if (IsNotInExcept(sn, exceptList))
+			{
+				DestroyScenesFrom(sn);
+			}
+		}
+	}
+
+	public void BackToScreen()
+	{
+		StartCoroutine(IEBackScreen());
+	}
+
+	public void PreLoadScene(string sceneName)
+	{
+		string sn = sceneName;
+
+		SSApplication.LoadLevelAdditive (sn, m_IsLoadAsync, (GameObject root) =>
+			{
+				GameObject scene = root;
+
+				// Add to dictionary
+				m_DictAllScene.Add(sn, scene);
+				scene.transform.parent = m_Scenes.transform;
+
+				// DeActive
+				scene.SetActive (false);
+
+				// Event
+				OnSceneLoad (scene);
+			});
+	}
+
+    public string DestroyCurrentStack()
+    {
+        Stack<string> stack = m_CurrentStackScreen;
+        string s = null;
+
+        while (stack != null && stack.Count >= 1)
+        {
+            s = stack.Pop();
+            DestroyScene(s);
+        }
+
+        m_CurrentStackScreen = new Stack<string>();
+
+        return s;
+    }
+
+	public void DestroyScenesFrom(string sceneName)
+	{
+		string sn = sceneName;
+
+		// Check if in the dict
+		if (!m_DictAllScene.ContainsKey(sn))
+		{
+			Debug.LogWarning("No exist scene to destroy: " + sn);
+			return;
+		}
+
+		// Check in pop up stack
+		if (m_StackPopUp.Contains(sn))
+		{
+			Debug.LogWarning("This pop up is active now: " + sn);
+			return;
+		}
+
+		// Check in screen screen stacks
+        foreach (var screens in m_DictScreen)
+		{
+			Stack<string> stack = screens.Value;
+
+			if (stack.Contains(sn))
+			{
+				// Not in current stack
+				if (stack != m_CurrentStackScreen)
+				{
+					if (stack.Count >= 1)
+					{
+						string s = stack.Pop();
+
+						while (string.Compare(s, sn) != 0)
+						{
+							DestroyScene(s);
+							s = stack.Pop();
+						}
+						DestroyScene(sn);
+					}
+				}
+				else
+				{
+					Debug.LogWarning("Can't destroy this scene. It's in an active stack: " + sn);
+					return;
+				}
+
+				// Break because found the stack contain scene.
+				break;
+			}
+		}
+
+		// If not in any stack, just destroy
+		if (m_DictAllScene.ContainsKey(sn))
+		{
+			DestroyScene(sn);
+			return;
+		}
+	}
+
+	public bool IsSceneInAnyStack(string sceneName)
+	{
+		bool isInStack = false;
+
+		if (m_CurrentStackScreen != null)
+		{
+			isInStack = m_CurrentStackScreen.Contains(sceneName);
+		}
+
+		isInStack = (isInStack || m_StackPopUp.Contains(sceneName));
+
+		return isInStack;
+	}
+
 	/// <summary>
 	/// Shows the loading indicator
 	/// </summary>
 	/// <param name="alpha">Alpha of shield.</param>
 	/// <param name="timeOut">Time out.</param>
 	/// <param name="callBack">Call back.</param>
-	public void ShowLoading(float alpha = 0.5f, float timeOut = 0, NoParamCallback callBack = null)
+    public void ShowLoading(float alpha = 0.5f, float timeOut = 0, NoParamCallback callBack = null, float delay = 0.5f)
 	{
-		if (m_Loading == null) return;
+		if (m_LoadingTop == null) return;
 
 		ShieldTopOn (alpha);
-		m_Loading.SetActive (true);
+		m_LoadingTop.SetActive (true);
 
 		m_LoadingCount++;
 
@@ -467,7 +373,7 @@ public class SSSceneManager : MonoBehaviour
 	/// <param name="isForceHide">If set to <c>true</c> is force hide without counting.</param>
 	public void HideLoading(bool isForceHide = false)
 	{
-		if (m_Loading == null || !m_Loading.activeInHierarchy) return;
+		if (m_LoadingTop == null || !m_LoadingTop.activeInHierarchy) return;
 
 		m_LoadingCount--;
 		
@@ -475,162 +381,10 @@ public class SSSceneManager : MonoBehaviour
 		{
 			m_LoadingCount = 0;
 			ShieldTopOff ();
-			m_Loading.SetActive (false);
+			m_LoadingTop.SetActive (false);
 		}
 
 		StopCoroutine ("IEHideLoading");
-	}
-
-	/// <summary>
-	/// Closes all sub scene.
-	/// </summary>
-	public void CloseAllSubScene()
-	{
-		while (m_StackSub.Count > 0) 
-		{
-			string top = m_StackSub.Pop ();
-
-			if (!string.IsNullOrEmpty (top)) 
-			{
-				CloseScene (top, true);
-			}
-		}
-	}
-
-	/// <summary>
-	/// Close sub.
-	/// </summary>
-	public void CloseSub(bool immediate = false)
-	{
-		if (m_IsBusy) 
-		{
-			Enqueue(null, immediate, null, null, SceneType.CLOSE_SUB);
-			return;
-		}
-
-		m_IsBusy = true;
-
-		StartCoroutine(IECloseSub(immediate));
-	}
-
-	/// <summary>
-	/// Close the top popup. If has no popup, quit app.
-	/// </summary>
-	/// <param name="immediate">If set to <c>true</c> immediate, close popup without animation.</param>
-	public void Close(bool immediate = false)
-	{
-		if (m_IsBusy) 
-		{
-			Enqueue(null, immediate, null, null, SceneType.CLOSE);
-			return;
-		}
-
-		m_IsBusy = true;
-
-		StartCoroutine(IEClose(immediate));
-	}
-
-	/// <summary>
-	/// Load the res scene.
-	/// </summary>
-	/// <param name="sceneName">Scene name.</param>
-	public void LoadRes(string sceneName)
-	{
-		string sn = sceneName;
-
-		if (m_IsBusy) 
-		{
-			Enqueue(sn, null, null, null, SceneType.RES);
-			return;
-		}
-
-		if (m_Res != null) 
-		{
-			Dequeue();
-			return;
-		}
-
-		m_IsBusy = true;
-
-		IERes (sn);
-	}
-
-	/// <summary>
-	/// Unload the res scene.
-	/// </summary>
-	/// <param name="sceneName">Scene name.</param>
-	public void UnloadRes(string sceneName)
-	{
-		string sn = sceneName;
-
-		GameObject sc = m_Dict[sn];
-
-		m_Dict.Remove(sn);
-		OnSceneUnload (sc);
-		Destroy(sc);
-	}
-
-	/// <summary>
-	/// Determine whether the scene is active.
-	/// </summary>
-	/// <returns><c>true</c> if the scene is active; otherwise, <c>false</c>.</returns>
-	/// <param name="sceneName">Scene name.</param>
-	public bool IsSceneActive(string sceneName)
-	{
-		string sn = sceneName;
-
-		if (!m_Dict.ContainsKey (sn))
-		{
-			return false;
-		}
-
-		GameObject sc = m_Dict[sn];
-
-		return sc.activeInHierarchy;
-	}
-
-	/// <summary>
-	/// Determine whether the scene is in queue.
-	/// </summary>
-	/// <returns><c>true</c> if the scene is in queue; otherwise, <c>false</c>.</returns>
-	/// <param name="sceneName">Scene name.</param>
-	public bool IsSceneInQueue(string sceneName)
-	{
-		string sn = sceneName;
-
-		foreach (var scene in m_Queue)
-		{
-			if (string.Compare (sn, scene.SceneName) == 0)
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/// <summary>
-	/// Determine whether the scene is in stack.
-	/// </summary>
-	/// <returns><c>true</c> if the scene is in stack; otherwise, <c>false</c>.</returns>
-	/// <param name="sceneName">Scene name.</param>
-	public bool IsSceneInStack(string sceneName)
-	{
-		string sn = sceneName;
-
-		return m_Stack.Contains (sn);
-	}
-
-	/// <summary>
-	///  Determine whether the scene is active or in queue.
-	/// </summary>
-	/// <returns><c>true</c> if the scene is active & in queue; otherwise, <c>false</c>.</returns>
-	/// <param name="sceneName">Scene name.</param>
-	public bool IsSceneActiveOrInQueue(string sceneName)
-	{
-		string sn = sceneName;
-
-		return (IsSceneActive (sn) || (IsSceneInQueue (sn)));
 	}
 
 	/// <summary>
@@ -674,6 +428,30 @@ public class SSSceneManager : MonoBehaviour
 		m_Shields = new GameObject("Shields");
 
 		CreateLoadingsThenLoadFirstScene ();
+	}
+
+	protected virtual void CreateLoadingsThenLoadFirstScene()
+	{
+		if (string.IsNullOrEmpty (m_LoadingSceneName))
+		{
+			OnFirstSceneLoad ();
+			return;
+		}
+
+		if (m_LoadingTop == null) 
+		{
+			SSApplication.LoadLevelAdditive (m_LoadingSceneName, m_IsLoadAsync, (GameObject root) =>
+				{
+					CreateLoadingTop(root);
+
+					OnFirstSceneLoad ();
+				});
+		}
+	}
+
+	protected virtual void Quit()
+	{
+		Debug.Log ("Quit: Please override this");
 	}
 
 	/// <summary>
@@ -737,6 +515,15 @@ public class SSSceneManager : MonoBehaviour
 
 	}
 
+    /// <summary>
+    /// Raises the animation finish event.
+    /// </summary>
+    /// <param name="sceneName">Scene name.</param>
+    protected virtual void OnAnimationFinish(string sceneName)
+    {
+
+    }
+
 	/// <summary>
 	/// Default first scene is 'First Scene Name', you can override this function.
 	/// </summary>
@@ -745,228 +532,23 @@ public class SSSceneManager : MonoBehaviour
 		Screen (m_FirstSceneName);
 	}
 
-	#if UNITY_EDITOR || UNITY_ANDROID
-	protected virtual void Update()
+	protected void CreateLoadingTop(GameObject root)
 	{
-		if (Input.GetKeyDown (KeyCode.Escape) && !m_IsBusy) 
-		{
-			string sn = StackTop ();
-			GameObject sc = m_Dict [sn];
-			SSController ct = sc.GetComponentInChildren<SSController>();
+		m_LoadingTop = root;
+		m_LoadingTop.name = m_LoadingTop.name + "Top";
 
-			if (ct != null) 
-			{
-				ct.OnKeyBack ();
-			} 
-			else 
-			{
-				Close ();
-			}
-		}
-	}
-	#endif
+		SetPosition (m_LoadingTop, SHIELD_TOP_INDEX);
+		SetCameras (m_LoadingTop, SHIELD_TOP_INDEX);
 
-	#endregion
-
-	#region Private Function
-	private void CreateLoadingsThenLoadFirstScene()
-	{
-		m_IsBusy = true;
-
-		if (string.IsNullOrEmpty (m_LoadingSceneName))
-		{
-			AfterLoading ();
-			return;
-		}
-
-		if (m_LoadingBack == null) 
-		{
-			SSApplication.LoadLevelAdditive (m_LoadingSceneName, m_IsLoadAsync, (GameObject root) =>
-			{
-				CreateLoadingBack(root);
-
-				CreateLoadingTop();
-
-				AfterLoading();
-			});
-		}
+		m_LoadingTop.SetActive (false);
 	}
 
-	private void CreateLoadingBack(GameObject root)
-	{
-		m_LoadingBack = root;
-		m_LoadingBack.name = m_LoadingBack.name + "Back";
-
-		SetPosition (m_LoadingBack, -SHIELD_TOP_INDEX);
-		SetCameras (m_LoadingBack, -SHIELD_TOP_INDEX);
-
-		m_LoadingBack.SetActive (false);
-	}
-
-	private void CreateLoadingTop()
-	{
-		if (m_Loading == null) 
-		{
-			if (m_LoadingBack != null) 
-			{
-				m_Loading = Instantiate (m_LoadingBack) as GameObject;
-				m_Loading.name = m_LoadingBack.name.Replace ("Back", "Top");
-
-				SSRoot root = m_Loading.GetComponent<SSRoot> ();
-				if (root == null)
-				{
-					Debug.LogWarning ("You must to attach SSRoot to the root object of loading scene!");
-				}
-				else
-				{
-					root.PreventLoadCallBack = true;
-				}
-
-				SetPosition (m_Loading, SHIELD_TOP_INDEX);
-				SetCameras (m_Loading, SHIELD_TOP_INDEX);
-
-				m_Loading.SetActive (false);
-			}
-		}
-	}
-
-	private void AfterLoading()
-	{
-		m_IsBusy = false;
-
-		if (!string.IsNullOrEmpty (m_FirstSceneName)) 
-		{
-			OnFirstSceneLoad ();
-		}
-
-		Dequeue ();
-	}
-
-	private void LoadScene(string sn, NoParamCallback onLoaded)
-	{
-		if (m_Dict.ContainsKey(sn))
-		{
-			ActiveScene (sn);
-
-			onLoaded ();
-		}
-		else
-		{
-			SSApplication.LoadLevelAdditive (sn, m_IsLoadAsync, (GameObject root) =>
-			{
-				GameObject scene = root;
-
-				m_Dict.Add(sn, scene);
-
-				scene.transform.parent = m_Scenes.transform;
-
-				OnSceneLoad (scene);
-
-				onLoaded ();
-			});
-		}
-	}
-
-	private void ActiveScene(string sn)
-	{
-		m_Dict[sn].SetActive(true);
-
-		// Animation
-		SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
-		if (an != null)
-		{
-			// We should bring this scene to somewhere far when re-active it.
-			// Then the animation will automatically bring it back at next frame.
-			// This trick remove flicker at the first frame.
-			an.transform.localPosition = new Vector3(99999, 0, 0);
-			an.transform.localScale = Vector3.one;
-		}
-	}
-
-	private void DeactiveOrDestroy(string sn, ForceType force = ForceType.NO_FORCE)
-	{
-		bool isCache = true;
-
-		GameObject sc = m_Dict[sn];
-		SSController ct = sc.GetComponentInChildren<SSController>();
-
-		// Set Event
-		if (ct != null)
-		{
-			if (ct.OnDeactive != null) ct.OnDeactive(ct);
-		}
-
-		sc.SetActive(false);
-
-		if (ct != null)
-		{
-			isCache = ct.IsCache;
-		}
-
-		if (force != ForceType.FORCE_NO_DESTROY) 
-		{
-			if (!isCache || force == ForceType.FORCE_DESTROY)
-			{
-				m_Dict.Remove(sn);
-				OnSceneUnload (sc);
-				Destroy(sc);
-			}
-		}
-	}
-
-	/// <summary>
-	/// Hides the sub back.
-	/// </summary>
-	private void HideSubBack(NoParamCallback callback = null)
-	{
-		if (m_StackSub.Count > 0) 
-		{
-			string top = m_StackSub.Peek ();
-
-			if (!string.IsNullOrEmpty (top)) 
-			{
-				CloseScene (top, false, ForceType.FORCE_NO_DESTROY, AnimType.HIDE_BACK, callback);
-			}
-		}
-	}
-
-	private void CloseScene(string sn, bool immediate, ForceType force = ForceType.NO_FORCE, AnimType animType = AnimType.HIDE, NoParamCallback callback = null)
-	{
-		// Event
-		SSController ct = m_Dict[sn].GetComponentInChildren<SSController>();
-		if (ct != null)
-		{
-			ct.OnHide();
-		}
-
-		// Play Animation
-		if (!immediate)
-		{
-			StartCoroutine( IEPlayAnimation (sn, animType, () => 
-			{
-				// Deactive or Destroy
-				DeactiveOrDestroy(sn, force);
-
-				if (callback != null)
-					callback();
-			}));
-		}
-		else
-		{
-			// Deactive or Destroy
-			DeactiveOrDestroy(sn, force);
-
-			if (callback != null)
-				callback();
-		}
-	}
-
-	private GameObject CreateShield(int i)
+	protected GameObject CreateShield(int i)
 	{
 		// Instantiate from resources
 		GameObject sh = Instantiate(Resources.Load("Shield")) as GameObject;
 		sh.name = "Shield" + i;
-		sh.transform.localPosition = new Vector3((i+0.5f) * SCENE_DISTANCE, 0, 0);
+		sh.transform.localPosition = new Vector3(i * SCENE_DISTANCE, 0, 0);
 		sh.transform.parent = m_Shields.transform;
 
 		// Set camera depth
@@ -976,7 +558,7 @@ public class SSSceneManager : MonoBehaviour
 		return sh;
 	}
 
-	private void ShieldTopOn(float alpha)
+	protected void ShieldTopOn(float alpha)
 	{
 		if (m_ShieldTop == null) 
 		{
@@ -993,7 +575,7 @@ public class SSSceneManager : MonoBehaviour
 		LockTopScene ();
 	}
 
-	private void ShieldTopOff()
+	protected void ShieldTopOff()
 	{
 		if (m_ShieldTop != null) 
 		{
@@ -1004,12 +586,12 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private void ShieldOn(int i)
+	protected void ShieldOn(int i)
 	{
 		ShieldOn (i, m_DefaultShieldColor);
 	}
 
-	private void ShieldOn(int i, Color color)
+	protected void ShieldOn(int i, Color color)
 	{
 		if (i < 0) return;
 
@@ -1033,7 +615,7 @@ public class SSSceneManager : MonoBehaviour
 		LockTopScene ();
 	}
 
-	private bool IsShieldActive(int i)
+	protected bool IsShieldActive(int i)
 	{
 		if (i >= m_ListShield.Count)
 			return false;
@@ -1041,74 +623,47 @@ public class SSSceneManager : MonoBehaviour
 		return (m_ListShield [i].activeInHierarchy);
 	}
 
-	private void ShieldOff()
+	protected void ShieldOff()
 	{
-		int i = m_Stack.Count - 1;
+		int i = m_StackPopUp.Count;
 
 		if (i < 0) return;
 
-		m_ListShield[i].SetActive(false);
+		if (m_ListShield.Count >= i)
+			m_ListShield[i].SetActive(false);
 
 		// Unlock
 		UnlockTopScene ();
 	}
 
-	private void LockTopScene()
+	protected void LockTopScene()
 	{
-		// Check if has no scene in stack
-		if (m_Stack.Count == 0)
-			return;
-
-		// Lock below scene
-		GameObject scene = m_Dict[m_Stack.Peek()];
-		OnLock(scene);
-
-		// Lock Menu same time lock screen
-		if (m_Stack.Count == 1 && m_Menu != null)
-		{
-			OnLock(m_Menu);
-		}
 	}
 
-	private void UnlockTopScene()
+	protected void UnlockTopScene()
 	{
-		// Check if has no scene in stack
-		if (m_Stack.Count == 0)
-			return;
-
-		if (!m_Dict.ContainsKey (m_Stack.Peek())) return;
-
-		// Unlock below scene
-		GameObject scene = m_Dict[m_Stack.Peek()];
-		OnUnlock(scene);
-
-		// Unlock Menu same time unlock screen
-		if (m_Stack.Count == 1 && m_Menu != null)
-		{
-			OnUnlock(m_Menu);
-		}
 	}
 
-	private void SetPosition(string sn, int i)
+	protected void SetPosition(string sn, int i)
 	{
-		GameObject sc = m_Dict[sn];
+		GameObject sc = m_DictAllScene[sn];
 
 		SetPosition (sc, i);
 	}
 
-	private void SetPosition(GameObject sc, int i)
+	protected void SetPosition(GameObject sc, int i)
 	{
 		sc.transform.localPosition = new Vector3(i * SCENE_DISTANCE, SCENE_DISTANCE, 0);
 	}
 
-	private void SetCameras(string sn, float i)
+	protected void SetCameras(string sn, float i)
 	{
-		GameObject sc = m_Dict[sn];
+		GameObject sc = m_DictAllScene[sn];
 
 		SetCameras (sc, i);
 	}
 
-	private void SetCameras(GameObject sc, float i)
+	protected void SetCameras(GameObject sc, float i)
 	{
 		// Sort by depth
 		List<Camera> cams = new List<Camera>(sc.GetComponentsInChildren<Camera>(true));
@@ -1140,59 +695,7 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private string StackBottom()
-	{
-		string r = null;
-		foreach (string s in m_Stack)
-		{
-			r = s;
-		}
-		return r;
-	}
-
-	private string StackTop()
-	{
-		if (m_Stack.Count == 0) return null;
-		return m_Stack.Peek();
-	}
-
-	private bool IsSameScreen(string sn)
-	{
-		string b = StackBottom();
-
-		if (string.IsNullOrEmpty(b)) return false;
-		if (string.Compare(b, sn) == 0) return true;
-
-		return false;
-	}
-
-	private bool IsExistSub(string sn)
-	{
-		return m_StackSub.Contains (sn);
-	}
-
-	private bool IsTopSub(string sn)
-	{
-		if (m_StackSub.Count > 0) 
-		{
-			if (m_StackSub.Peek () == sn)
-				return true;
-		}
-
-		return false;
-	}
-
-	private bool IsPopUpShowed(string sn)
-	{
-		foreach (string s in m_Stack)
-		{
-			if (string.Compare(s, sn) == 0) return true;
-		}
-
-		return false;
-	}
-
-	private void BgmSceneOpen(string curBgm, SSController ctrl)
+	protected void BgmSceneOpen(string curBgm, SSController ctrl)
 	{
 		if (!string.IsNullOrEmpty (m_GlobalBgm))
 		{
@@ -1225,7 +728,7 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private void BgmSceneClose(SSController ctrl)
+	protected void BgmSceneClose(SSController ctrl)
 	{
 		if (!string.IsNullOrEmpty (m_GlobalBgm))
 		{
@@ -1251,206 +754,9 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private void ShowLoadingBack()
+	protected IEnumerator IEPlayAnimation(string sn, AnimType animType, NoParamCallback callback = null)
 	{
-		if (m_LoadingBack != null) 
-		{
-			m_LoadingBack.SetActive (true);
-		}
-	}
-
-	private void HideLoadingBack()
-	{
-		if (m_LoadingBack != null) 
-		{
-			m_LoadingBack.SetActive (false);
-		}
-	}
-
-	private void IECommon(string sn, int i, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
-	{
-		IECommon (sn, i, i, data, onActive, onDeactive, type, isInStack);
-	}
-
-	private void IECommon(string sn, int ip, float ic, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
-	{
-		// Defaut BGM
-		string curBgm = string.Empty;
-
-		// Active Shield
-		ShieldOn(ip-1);
-
-		// Focus lost
-		if (isInStack && m_Stack.Count > 0)
-		{
-			string s = m_Stack.Peek();
-			SSController c = m_Dict[s].GetComponentInChildren<SSController>();
-			if (c != null)
-			{
-				curBgm = c.CurrentBgm;
-				c.OnFocusLost();
-			}
-		}
-
-		// Load or active scene
-		LoadScene (sn, () =>
-		{
-			// Set Position
-			SetPosition(sn, ip);
-
-			// Set Cameras
-			SetCameras(sn, ic);
-
-			if (isInStack)
-			{
-				// Add to Stack
-				m_Stack.Push(sn);
-			}
-
-			// Set event & data
-			SSController ct = m_Dict[sn].GetComponentInChildren<SSController>();
-			if (ct != null)
-			{
-				ct.OnActive = onActive;
-				ct.OnDeactive = onDeactive;
-
-				if (ct.OnActive != null) ct.OnActive(ct);
-
-				ct.OnSet(data);
-			}
-
-			// Active Empty Shield
-			ShieldOn (ip, new Color(0, 0, 0, 0));
-
-			// Play if has animation
-			StartCoroutine(IEPlayAnimation(sn, AnimType.SHOW, () =>
-			{
-				// Deactive Empty Shield
-				ShieldOff ();
-
-				// Event
-				if (ct != null)
-				{
-					if (isInStack)
-					{
-						BgmSceneOpen(curBgm, ct);
-					}
-					ct.OnShow();
-				}
-
-				// Busy off
-				m_IsBusy = false;
-
-				// Set something by type
-				SetByType(sn, type);
-
-				// Event
-				if (onSceneActived != null)
-				{
-					onSceneActived(sn);
-				}
-
-				// Check queue
-				Dequeue();
-			}));
-		});
-	}
-
-	private void IECommonSub(string sn, int ip, float ic, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type, bool isInStack = true)
-	{
-		// Defaut BGM
-		string curBgm = string.Empty;
-
-		// Active Shield
-		bool isShieldActived = IsShieldActive (0);
-
-		// Active Empty shield
-		if (!isShieldActived)
-			ShieldOn (0, new Color(0, 0, 0, 0));
-
-		// Load or active scene
-		LoadScene (sn, () =>
-		{
-			// Focus lost
-			if (isInStack && m_StackSub.Count > 0)
-			{
-				string s = m_StackSub.Peek();
-				SSController c = m_Dict[s].GetComponentInChildren<SSController>();
-				if (c != null)
-				{
-					curBgm = c.CurrentBgm;
-					c.OnFocusLost();
-				}
-			}
-
-			// Hide Stack top
-			HideSubBack();
-
-			// Set Position
-			SetPosition(sn, ip);
-
-			// Set Cameras
-			SetCameras(sn, ic);
-
-			if (isInStack)
-			{
-				// Add to Stack
-				m_StackSub.Push(sn);
-			}
-
-			// Set event & data
-			SSController ct = m_Dict[sn].GetComponentInChildren<SSController>();
-			if (ct != null)
-			{
-				ct.OnActive = onActive;
-				ct.OnDeactive = onDeactive;
-
-				if (ct.OnActive != null) ct.OnActive(ct);
-
-				ct.OnSet(data);
-			}
-
-			// No animation if is first sub-scene of stack
-			AnimType animType = (m_StackSub.Count == 1) ? AnimType.NO_ANIM : AnimType.SHOW;
-
-			// Play if has animation
-			StartCoroutine(IEPlayAnimation(sn, animType, () =>
-			{
-				// Deactive Empty Shield
-				if (!isShieldActived)
-					ShieldOff ();
-
-				// Event
-				if (ct != null)
-				{
-					if (isInStack)
-					{
-						BgmSceneOpen(curBgm, ct);
-					}
-					ct.OnShow();
-				}
-
-				// Busy off
-				m_IsBusy = false;
-
-				// Set something by type
-				SetByType(sn, type);
-
-				// Event
-				if (onSceneActived != null)
-				{
-					onSceneActived(sn);
-				}
-
-				// Check queue
-				Dequeue();
-			}));
-		});
-	}
-
-	private IEnumerator IEPlayAnimation(string sn, AnimType animType, NoParamCallback callback = null)
-	{
-		SSMotion an = m_Dict[sn].GetComponentInChildren<SSMotion>();
+		SSMotion an = m_DictAllScene[sn].GetComponentInChildren<SSMotion>();
 		if (an != null && animType != AnimType.NO_ANIM)
 		{
 			yield return null;
@@ -1483,13 +789,16 @@ public class SSSceneManager : MonoBehaviour
 				play ();
 			}
 			yield return StartCoroutine (Pause (time));
+            yield return new WaitForEndOfFrame();
+
+            OnAnimationFinish(sn);
 
 			if (callback != null)
 				callback ();
 		}
 		else
 		{
-			if (animType == AnimType.NO_ANIM) 
+			if (animType == AnimType.NO_ANIM && an != null) 
 			{
 				an.transform.localPosition = Vector3.zero;
 			}
@@ -1499,324 +808,39 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-	private void IEScreen(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
+	#if UNITY_EDITOR || UNITY_ANDROID
+	protected virtual void Update()
 	{
-		// Show system loading
-		ShowLoadingBack ();
-
-		// Common
-		IECommon(sn, 0, data, onActive, onDeactive, SceneType.SCREEN);
-	}
-
-	private void IEPopUp(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
-	{
-		// Count
-		int c = m_Stack.Count;
-
-		// Next index
-		int ni = c;
-
-		// Common
-		IECommon(sn, ni, data, onActive, onDeactive, SceneType.POPUP);
-	}
-
-	private void IEMenu(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
-	{
-		// Common
-		IECommon(sn, -1, 0.8f, data, onActive, onDeactive, SceneType.MENU, false);
-	}
-
-	private void IESubScreen(string sn, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive)
-	{
-		// Common
-		IECommonSub(sn, -2 - m_StackSub.Count, 0.3f + (float)m_StackSub.Count / DEPTH_DISTANCE, data, onActive, onDeactive, SceneType.SUB_SCREEN, true);
-	}
-
-	private IEnumerator IEClose(bool immediate)
-	{
-		// Nothing to close
-		if (m_Stack.Count == 0) 
+		if (Input.GetKeyDown (KeyCode.Escape)) 
 		{
-			m_IsBusy = false;
-			yield break;
-		}
+			SSController ct = null;
 
-		// Lowest layer: Quit
-		if (m_Stack.Count == 1) 
-		{
-			m_IsBusy = false;
-			Debug.Log("Application.Quit");
-			Application.Quit();
-			yield break;
-		}
-
-		// Active Empty shield
-		ShieldOn (m_Stack.Count - 1, new Color(0, 0, 0, 0));
-
-		// Stack peek
-		string sn = m_Stack.Peek();
-
-		// Deactive Scene
-		CloseScene (sn, immediate, ForceType.NO_FORCE, AnimType.HIDE, () => 
-		{
-			// Deactive Empty shield
-			ShieldOff();
-
-			// Stack pop
-			sn = m_Stack.Pop();
-
-			// Focus back
-			if (m_Stack.Count > 0)
+			if (m_StackPopUp.Count >= 1) 
 			{
-				string s = m_Stack.Peek();
-				SSController c = m_Dict[s].GetComponentInChildren<SSController>();
-				if (c != null)
+				ct = GetController (m_StackPopUp.Peek ());
+			} 
+			else
+			{
+				if (m_CurrentStackScreen != null && m_CurrentStackScreen.Count >= 1) 
 				{
-					BgmSceneClose(c);
-					c.OnFocusBack();
+					ct = GetController (m_CurrentStackScreen.Peek ());
 				}
 			}
 
-			// Deactive Shield
-			ShieldOff();
-
-			// Busy off
-			m_IsBusy = false;
-
-			// Event
-			if (m_Stack.Count > 0)
+			if (ct != null) 
 			{
-				string s = m_Stack.Peek();
-				if (onSceneActived != null)
-				{
-					onSceneActived (s);
-				}
-			}
-
-			// Check queue
-			Dequeue();
-		});
-	}
-
-	private IEnumerator IECloseSub(bool immediate)
-	{
-		// Nothing to close
-		if (m_StackSub.Count == 0) 
-		{
-			m_IsBusy = false;
-			yield break;
-		}
-
-		// Lowest layer: Quit
-		if (m_StackSub.Count == 1) 
-		{
-			m_IsBusy = false;
-			Debug.Log("Application.Quit");
-			Application.Quit();
-			yield break;
-		}
-
-		// Current state of shield 0
-		bool isShieldActived = IsShieldActive (0);
-
-		// Active Empty shield
-		ShieldOn (0, new Color(0, 0, 0, 0));
-
-		// Stack pop
-		string sn = m_StackSub.Pop();
-
-		// Deactive Scene
-		CloseScene (sn, immediate, ForceType.NO_FORCE, AnimType.HIDE, () => 
-		{
-			// Deactive Empty shield
-			if (!isShieldActived) 
+				ct.OnKeyBack ();
+			} 
+			else 
 			{
-				ShieldOff ();
-			}
-
-			// Focus back
-			if (m_StackSub.Count > 0)
-			{
-				string s = m_StackSub.Peek();
-				SSController c = m_Dict[s].GetComponentInChildren<SSController>();
-				if (c != null)
-				{
-					BgmSceneClose(c);
-					c.OnFocusBack();
-				}
-			}
-
-			// Busy off
-			m_IsBusy = false;
-
-			// Event
-			if (m_StackSub.Count > 0)
-			{
-				string s = m_StackSub.Peek();
-				if (onSceneActived != null)
-				{
-					onSceneActived (s);
-				}
-			}
-
-			// Check queue
-			Dequeue();
-		});
-
-		// Top of stack
-		sn = m_StackSub.Peek();
-
-		// Active scene
-		ActiveScene (sn);
-		StartCoroutine (IEPlayAnimation (sn, AnimType.SHOW_BACK));
-	}
-
-	private void IERes(string sn)
-	{
-		LoadScene (sn, () =>
-		{
-			// Busy off
-			m_IsBusy = false;
-
-			// Set something by type
-			SetByType(sn, SceneType.RES);
-
-			// Check queue
-			Dequeue();
-		});
-	}
-
-	private void SetByType(string sn, SceneType type)
-	{
-		switch (type) 
-		{
-			case SceneType.SCREEN:
-				HideLoadingBack ();
-				break;
-			case SceneType.SUB_SCREEN:
-				break;
-			case SceneType.POPUP:
-				break;
-			case SceneType.MENU:
-				m_Menu = m_Dict[sn];
-				break;
-			case SceneType.CLOSE:
-				break;
-			case SceneType.CLOSE_SUB:
-				break;
-			case SceneType.RESET:
-				HideLoadingBack ();
-				break;
-			case SceneType.RES:
-				m_Res = m_Dict [sn];
-				m_Res.transform.localPosition = new Vector3 (99999, 0, 0);
-				break;
-			default:
-				break;
-		}
-	}
-
-	private void Enqueue(string sceneName, object data, SSCallBackDelegate onActive, SSCallBackDelegate onDeactive, SceneType type)
-	{
-		m_Queue.Enqueue(new SceneData(sceneName, data, onActive, onDeactive, type));
-	}
-
-	private void Dequeue()
-	{
-		if (m_Queue.Count == 0) return;
-
-		// Check if this scene is popup
-		SceneData sd = m_Queue.Peek ();
-		if (sd.Type == SceneType.POPUP) 
-		{
-			// Check if scene was showed already
-			if (IsPopUpShowed (sd.SceneName)) 
-			{
-				// Check if is adding data
-				bool isAddingData = IsAddingData (sd.Data);
-
-				if (!isAddingData)
-				{
-					Debug.Log ("Wait Close: Close current popup to do next command");
-					return;
-				}
-			}
-
-			// Check if wait no popup
-			bool isWaitNoPopUp = IsWaitNoPopUp (sd.Data);
-
-			// Check if wait no popup && has popup now
-			if (isWaitNoPopUp && m_Stack.Count >= 2)
-			{
-				return;
+				Close ();
 			}
 		}
-
-		// Dequeue
-		sd = m_Queue.Dequeue();
-		switch (sd.Type) 
-		{
-		case SceneType.SCREEN:
-				Screen(sd.SceneName, sd.Data, sd.OnActive, sd.OnDeactive);
-				break;
-		case SceneType.SUB_SCREEN:
-				SubScreen(sd.SceneName, sd.Data, sd.OnActive, sd.OnDeactive);
-				break;
-		case SceneType.POPUP:
-				PopUp(sd.SceneName, sd.Data, sd.OnActive, sd.OnDeactive);
-				break;
-		case SceneType.MENU:
-				LoadMenu(sd.SceneName, sd.Data, sd.OnActive, sd.OnDeactive);
-				break;
-		case SceneType.CLOSE:
-				Close((bool)sd.Data);
-				break;
-		case SceneType.CLOSE_SUB:
-				CloseSub((bool)sd.Data);
-				break;
-		case SceneType.RESET:
-				Reset(sd.Data, sd.OnActive, sd.OnDeactive);
-				break;
-		case SceneType.RES:
-				LoadRes(sd.SceneName);
-				break;
-		}
 	}
+	#endif
+	#endregion
 
-	private bool IsAddingData(object data)
-	{
-		bool isAddingData = false;
-
-		if (data != null && data.GetType() == typeof(PopUpData))
-		{
-			PopUpData popUpData = (PopUpData)data;
-
-			if (popUpData != null)
-			{
-				isAddingData = popUpData.IsAddData;
-			}
-		}
-
-		return isAddingData;
-	}
-
-	private bool IsWaitNoPopUp(object data)
-	{
-		bool isWaitNoPopUp = false;
-
-		if (data != null && data.GetType() == typeof(PopUpData))
-		{
-			PopUpData popUpData = (PopUpData)data;
-
-			if (popUpData != null)
-			{
-				isWaitNoPopUp = popUpData.IsWaitNoPopUp;
-			}
-		}
-
-		return isWaitNoPopUp;
-	}
-
+	#region Private Function
 	private IEnumerator IEHideLoading(CallbackData callbackData)
 	{
 		yield return new WaitForSeconds (callbackData.TimeOut);
@@ -1838,7 +862,868 @@ public class SSSceneManager : MonoBehaviour
 		}
 		yield return 0;
 	}
-	
+
+
+	private bool IsNotInExcept(string sn, params string[] exceptList)
+	{
+		bool isOk = true;
+		for (int i = 0; i < exceptList.Length; i++)
+		{
+			if (string.Compare(exceptList[i], sn) == 0)
+			{
+				isOk = false;
+				break;
+			}
+		}
+
+		return isOk;
+	}
+
+	private void DestroyScene(string sceneName)
+	{
+		// Scene Name & Scene
+		string sn = sceneName;
+		GameObject sc = m_DictAllScene[sn];
+
+		// Unload
+		OnSceneUnload (sc);
+
+		m_DictAllScene.Remove (sc.name);
+		SSApplication.OnUnloaded (sc);
+
+		// Destroy
+		Destroy (sc);
+	}
+
+	private IEnumerator IEScreen (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		yield return StartCoroutine (IEWaitForNotBusy ());
+		OpenScreen (sceneName, data, onActive, onDeactive);
+	}
+
+	private IEnumerator IEAddScreen (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		yield return StartCoroutine (IEWaitForNotBusy ());
+		OpenScreenAdd (sceneName, data, false, onActive, onDeactive);
+	}
+
+	private IEnumerator IEPopUp (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		yield return StartCoroutine (IEWaitForNotBusy ());
+
+        if (IsSceneActive(sceneName))
+        {
+            m_CanClose = true;
+        }
+
+        while (IsSceneActive (sceneName)) 
+		{
+			yield return new WaitForEndOfFrame ();
+		}
+		m_IsBusy = true;
+
+		OpenPopUp (sceneName, data, false, onActive, onDeactive);
+	}
+
+    private bool IsSceneActive( string sceneName)
+    {
+        string sn = sceneName;
+
+        if (m_DictAllScene.ContainsKey(sn))
+        {
+            return m_DictAllScene[sn].activeInHierarchy;
+        }
+
+        return false;
+    }
+
+	private IEnumerator IELoadMenu (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		yield return StartCoroutine (IEWaitForNotBusy ());
+		OpenMenu (sceneName, onActive, onDeactive);
+	}
+
+    private void CloseAllPopUp()
+    {
+        while (m_StackPopUp.Count >= 1) 
+        {
+            ClosePopUp(true);
+        }
+    }
+
+	private IEnumerator IEBackScreen ()
+	{
+		yield return StartCoroutine (IEWaitForNotBusy ());
+
+        // Close all pop up
+        CloseAllPopUp();
+
+        // Close screens
+		int n = m_CurrentStackScreen.Count;
+		if (n == 2)
+		{
+			CloseAny();
+		}
+		else
+		{
+			while (m_CurrentStackScreen.Count > 1)
+			{
+				CloseAny(true);
+			}
+		}
+	}
+
+	private IEnumerator IEClose (bool immediate = false, NoParamCallback callback = null)
+	{
+        if (m_CanClose)
+        {
+            m_CanClose = false;
+            CloseAny(immediate, callback);
+        }
+        else
+        {
+            yield return StartCoroutine(IEWaitForNotBusy());
+            CloseAny(immediate, callback);
+        }
+	}
+
+	private void CloseAny(bool imme = false, NoParamCallback callback = null)
+	{
+		if (m_StackPopUp.Count >= 1) 
+		{
+			ClosePopUp (imme, callback);
+		} 
+		else
+		{
+			if (m_CurrentStackScreen.Count > 1) 
+			{
+				CloseScreen (imme, callback);
+			} 
+			else 
+			{
+				if (m_CurrentStackScreen.Count == 1) 
+				{
+					// Do Nothing
+				}
+			}
+		}
+	}
+
+	private GameObject GetRoot(string sceneName)
+	{
+		string sn = sceneName;
+
+		if (m_DictAllScene.ContainsKey (sn)) 
+		{
+			return m_DictAllScene [sn];
+		}
+
+		return null;
+	}
+
+	private SSController GetController(string sceneName)
+	{
+		string sn = sceneName;
+
+		if (m_DictAllScene.ContainsKey (sn)) 
+		{
+			GameObject sc = m_DictAllScene [sn];
+			SSController[] cts = sc.GetComponentsInChildren<SSController> (true);
+
+			if (cts.Length > 0) 
+			{
+				return cts [0];
+			}
+		}
+
+		return null;
+	}
+
+	private void DestroyOrCache(GameObject sc, SSController ct)
+	{
+		if (ct != null) 
+		{
+			if (!ct.IsCache) 
+			{
+				OnSceneUnload (sc);
+
+				m_DictAllScene.Remove (sc.name);
+				SSApplication.OnUnloaded (sc);
+
+				Destroy (sc);
+			}
+		}
+	}
+
+	private void ShowAndBgmChangeClose(string sceneName)
+	{
+		// Prev Scene
+		SSController ct = GetController (sceneName);
+
+		// On Show
+		if (ct != null)
+		{
+			ct.OnShow();
+		}
+
+		// On Scene Showed
+		if (onSceneActived != null)
+		{
+			onSceneActived(sceneName);
+		}
+
+		// Bgm change
+		BgmSceneClose(ct);
+	}
+
+	private void ShowAndBgmChangeOpen(string sceneName, string curBgm)
+	{
+		// Prev Scene
+		SSController ct = GetController (sceneName);
+
+		// On Show
+		if (ct != null)
+		{
+			ct.OnShow();
+		}
+
+		// On Scene Showed
+		if (onSceneActived != null)
+		{
+			onSceneActived(sceneName);
+		}
+
+		// Bgm change
+		BgmSceneOpen (curBgm, ct);
+	}
+
+	private void ActiveAScene(string sceneName)
+	{
+		string sn = sceneName;
+
+		GameObject sc = GetRoot (sn);
+		SSController ct = GetController (sn);
+
+		// On Active
+		if (ct != null)
+		{
+			if (ct.OnActive != null) 
+			{
+				ct.OnActive (ct);
+				ct.OnActive = null;
+			}
+		}
+
+		// Active true
+		sc.SetActive (true);
+	}
+
+	private void DeactiveAScene(string sceneName)
+	{
+		string sn = sceneName;
+
+		GameObject sc = GetRoot (sn);
+		SSController ct = GetController (sn);
+
+		// On Deactive
+		if (ct != null)
+		{
+			if (ct.OnDeactive != null) 
+			{
+				ct.OnDeactive (ct);
+				ct.OnDeactive = null;
+			}
+		}
+
+		// Active false
+		sc.SetActive (false);
+	}
+
+	private void SetActiveDeactiveCallback(string sceneName, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		SSController ct = GetController (sceneName);
+
+		if (ct != null) 
+		{
+			ct.OnActive = onActive;
+			ct.OnDeactive = onDeactive;
+		}
+	}
+
+	private void LoadOrActive(string sceneName, NoParamCallback onLoaded, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		string sn = sceneName;
+
+		if (m_DictAllScene.ContainsKey(sn))
+		{
+			// Callback
+			SetActiveDeactiveCallback (sn, onActive, onDeactive);
+
+			// Active
+			ActiveAScene (sn);
+
+			// Event
+			onLoaded ();
+		}
+		else
+		{
+			SSApplication.LoadLevelAdditive (sn, m_IsLoadAsync, (GameObject root) =>
+				{
+					GameObject scene = root;
+
+					// Add to dictionary
+					m_DictAllScene.Add(sn, scene);
+					scene.transform.parent = m_Scenes.transform;
+
+					// Callback
+					SetActiveDeactiveCallback (sn, onActive, onDeactive);
+
+					// Active
+					ActiveAScene (sn);
+
+					// Event
+					OnSceneLoad (scene);
+					onLoaded ();
+				});
+		}
+	}
+
+    private void HideAll(Stack<string> stackScreen)
+	{
+		// Close all pop up
+        CloseAllPopUp();
+
+		// Get is cache
+		bool isClearStackScreen = false;
+		string bot = StackScreenBottom (stackScreen);
+		if (!string.IsNullOrEmpty (bot)) 
+		{
+			SSController ct = GetController (bot);
+			if (ct != null && !ct.IsCache) 
+			{
+				isClearStackScreen = true;
+			}
+		}
+
+		// Close all screen of this stack
+        foreach (var screen in stackScreen) 
+		{
+			SSController ct = GetController (screen);
+			if (ct != null) 
+			{
+				ct.IsCache = !isClearStackScreen;
+			}
+			CmClose (screen, true);
+		}
+
+		// Clear if not cache
+		if (isClearStackScreen) 
+		{
+			stackScreen.Clear ();
+		}
+	}
+
+	private string StackScreen(string sn)
+	{
+		// Check Exist
+		if (!m_DictScreen.ContainsKey (sn)) 
+		{
+			m_DictScreen.Add (sn, new Stack<string> ());
+		}
+		m_CurrentStackScreen = m_DictScreen [sn];
+
+		// If empty, push then return sn
+		if (m_CurrentStackScreen.Count == 0) 
+		{
+			m_CurrentStackScreen.Push (sn);
+			return sn;
+		}
+
+		// If not empty, return top of stack
+		return m_CurrentStackScreen.Peek ();
+	}
+
+	private string StackScreenBottom(Stack<string> stack)
+	{
+		if (stack == null)
+			return null;
+
+		string r = null;
+		foreach (string s in stack)
+		{
+			r = s;
+		}
+		return r;
+	}
+
+	private string StackScreenBottom()
+	{
+		return StackScreenBottom (m_CurrentStackScreen);
+	}
+
+	private void ShowEmptyShield()
+	{
+		if (m_ShieldEmpty == null) 
+		{
+			m_ShieldEmpty = CreateShield (SHIELD_TOP_INDEX-2);
+		} else 
+		{
+			m_ShieldEmpty.SetActive (true);
+		}
+
+		MeshRenderer mesh = m_ShieldEmpty.GetComponentInChildren<MeshRenderer> ();
+		mesh.material.color = new Color (0, 0, 0, 0);
+
+		m_ShieldEmptyCount++;
+
+		// Lock
+		LockTopScene ();
+	}
+
+	private void HideEmptyShield()
+	{
+		if (m_ShieldEmpty != null) 
+		{
+			m_ShieldEmptyCount--;
+
+			if (m_ShieldEmptyCount == 0) 
+			{
+				m_ShieldEmpty.SetActive (false);
+
+				// Unlock
+				UnlockTopScene ();
+			}
+		}
+	}
+
+	private bool CanOpenPopUp(string sceneName)
+	{
+		if (m_StackPopUp.Contains (sceneName)) 
+		{
+			Debug.LogWarning ("This popup was added to stack!");
+			return false;
+		}
+
+		return true;
+	}
+
+	private bool CanOpenScreen(string sceneName)
+	{
+		foreach (var pair in m_DictScreen) 
+		{
+			string bot = StackScreenBottom (pair.Value);
+
+			bool isCurStack = (m_CurrentStackScreen == pair.Value);
+			bool isInStack = pair.Value.Contains (sceneName);
+
+            if (sceneName == bot && isCurStack) 
+			{
+                if (m_CurrentStackScreen.Count > 1)
+                {
+                    BackToScreen();
+                }
+
+				return false;
+			}
+
+			if (sceneName != bot && isInStack) 
+			{
+				Debug.LogWarning ("This screen was added to stack!");
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private bool CanOpenScreenAdd(string sceneName)
+	{
+		foreach (var pair in m_DictScreen) 
+		{
+			bool isInStack = pair.Value.Contains (sceneName);
+
+			if (isInStack)
+			{
+				Debug.LogWarning ("This screen was added to stack!");
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private void CmClose(string sceneName, bool imme, NoParamCallback onAnimEnded = null)
+	{
+		string sn = sceneName;
+		AnimType animType = (imme) ? AnimType.NO_ANIM : AnimType.HIDE;
+
+		GameObject sc = GetRoot (sn);
+		SSController ct = GetController (sn);
+
+		if (ct != null) 
+		{
+			// Show Empty shield
+			ShowEmptyShield ();
+
+			// Hide
+			ct.OnHide ();
+
+			StartCoroutine(IEPlayAnimation(sn, animType, () =>
+				{
+					// Deactive
+					DeactiveAScene(sn);
+
+					// Destroy or Cache
+					DestroyOrCache(sc, ct);
+
+					// Hide empty shield
+					HideEmptyShield();
+
+					// Next Step
+					if (onAnimEnded != null) onAnimEnded();
+
+					// No Busy
+					m_IsBusy = false;
+				}));
+		}
+	}
+
+	private void ClosePopUp(bool imme, NoParamCallback callback = null)
+	{
+		string curSn = m_StackPopUp.Pop ();
+		string preSn = string.Empty;
+
+		if (m_StackPopUp.Count >= 1)
+		{
+			preSn = m_StackPopUp.Peek();
+		}
+		else
+		{
+			preSn = m_CurrentStackScreen.Peek();
+		}
+
+		CmClose (curSn, imme, () => 
+			{
+				// Shield Off
+				ShieldOff();
+
+				// Show & BGM change
+				ShowAndBgmChangeClose(preSn);
+
+				// Callback
+				if (callback != null)
+				{
+					callback();
+				}
+			});
+	}
+
+	private void CloseScreen(bool imme, NoParamCallback callback = null)
+	{
+		string curSn = m_CurrentStackScreen.Pop ();
+		string preSn = string.Empty;
+
+		// Check if has prev scene
+		if (m_CurrentStackScreen.Count > 0) 
+		{
+			preSn = m_CurrentStackScreen.Peek ();
+		}
+
+		// Thread 1 (current scene animation)
+		CmClose (curSn, imme, () => 
+			{
+				if (callback != null)
+				{
+					callback();
+				}
+			});
+
+		// Thread 2 (previous scene animation)
+		if (!string.IsNullOrEmpty (preSn)) 
+		{
+			// Active
+			ActiveAScene (preSn);
+
+			// Animation
+			AnimType animType = (imme) ? AnimType.NO_ANIM : AnimType.SHOW_BACK;
+			StartCoroutine (IEPlayAnimation (preSn, animType, () => 
+				{
+					// Show & BGM change
+					ShowAndBgmChangeClose (preSn);
+				}));
+		}
+		else
+		{
+			// Do nothing or application quit
+		}
+	}
+
+	private void CmOpen(string sceneName, int ip, float ic, object data, bool imme, string curBgm, NoParamCallback onAnimEnded = null, NoParamCallback onLoaded = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		string sn = sceneName;
+
+		// Show Empty shield
+		ShowEmptyShield ();
+
+		LoadOrActive (sn, () => 
+			{
+				if (onLoaded != null)
+				{
+					onLoaded();
+				}
+
+				// Set camera and position
+				SetCameras(sn, ic);
+				SetPosition(sn, ip); 
+
+				// On Set
+				SSController ct = GetController(sn);
+				if (ct != null)
+				{
+					ct.OnSet(data);
+				}
+
+				// Animation
+				AnimType animType = (imme) ? AnimType.NO_ANIM : AnimType.SHOW;
+				StartCoroutine (IEPlayAnimation (sn, animType, () => 
+					{
+						// Show & BGM change
+						ShowAndBgmChangeOpen (sn, curBgm);
+
+						// Hide empty shield
+						HideEmptyShield();
+
+						// Call back
+						if (onAnimEnded != null) onAnimEnded();
+
+						// No busy
+						m_IsBusy = false;
+					}));
+			}, onActive, onDeactive);
+	}
+
+	private void OpenPopUp(string sceneName, object data = null, bool imme = false, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		string sn = sceneName;
+
+		// Check valid
+		if (!CanOpenPopUp (sn)) 
+		{
+            m_IsBusy = false;
+			return;
+		}
+
+		// Count
+		int c = m_StackPopUp.Count + 1;
+
+		// Next index
+		int ip = c;
+		float ic = c;
+
+		// Prev Scene
+		SSController ct = null;
+		string curBgm = null;
+
+		// Highest popup
+		if (m_StackPopUp.Count >= 1)
+		{
+			string preSn = m_StackPopUp.Peek();
+
+			ct = GetController(preSn);
+		}
+		// Or highest screen
+		else if (m_CurrentStackScreen != null && m_CurrentStackScreen.Count >= 1)
+		{
+			string preSn = m_CurrentStackScreen.Peek();
+
+			ct = GetController(preSn);
+		}
+
+		if (ct != null)
+		{
+			// Cur Bgm
+			curBgm = ct.CurrentBgm;
+
+			// Shield
+			ShieldOn(m_StackPopUp.Count);
+		}
+		else
+		{
+			ShieldOn(0);
+		}
+
+		// Push stack
+		m_StackPopUp.Push(sn);
+
+		CmOpen (sn, ip, ic, data, imme, curBgm, () => 
+			{
+				// On Hide
+				if (ct != null)
+				{
+					ct.OnHide();
+				}
+			}, null, onActive, onDeactive);
+	}
+
+	private void OpenScreen(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		string sn = sceneName;
+
+		// Check valid
+		if (!CanOpenScreen (sn)) 
+		{
+            m_IsBusy = false;
+			return;
+		}
+
+		// Prev stack screen
+		Stack<string> prevStack = m_CurrentStackScreen;
+
+		// Set screen stack to current
+		string top = StackScreen (sn);
+
+		// onScreenStartChange
+		if (onScreenStartChange != null) 
+		{
+			onScreenStartChange (sn);
+		}
+
+		if (sn == top) // First time load
+		{
+			CmOpen (sn, 0, 0, data, true, string.Empty, () => 
+				{
+					// Hide All
+					HideAll (prevStack);
+				}, null, onActive, onDeactive);
+		} 
+		else // Not first time
+		{
+			// Hide All
+			HideAll (prevStack);
+
+			// Just active scene
+			ActiveAScene (top);
+
+			// Show and Bgm
+			SSController ct = GetController (top);
+			if (ct != null) 
+			{
+				ShowAndBgmChangeOpen (top, ct.CurrentBgm);
+			}
+
+			m_IsBusy = false;
+		}
+	}
+
+	private void OpenScreenAdd(string sceneName, object data = null, bool imme = false, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		string sn = sceneName;
+
+		// Check valid
+		if (!CanOpenScreenAdd (sn)) 
+		{
+            m_IsBusy = false;
+			return;
+		}
+
+		// Bot Scene
+		string bot = StackScreenBottom();
+		if (string.IsNullOrEmpty (bot)) 
+		{
+			Debug.LogWarning ("Main screen is not exist, can't add this screen above!");
+			return;
+		}
+
+		// Next index
+		int ip = -2 - m_CurrentStackScreen.Count;
+		float ic = 0.3f + (float)m_CurrentStackScreen.Count / DEPTH_DISTANCE;
+
+		// Prev Scene
+		string preSn = m_CurrentStackScreen.Peek ();
+		SSController ct = GetController (preSn);
+
+		// Cur Bgm
+		string curBgm = ct.CurrentBgm;
+
+		// Thread 1
+		CmOpen (sn, ip, ic, data, imme, curBgm, () => 
+		{
+			// Set IsCache of this scene same the IsCache of bottom scene of stack screen
+			SSController newCt = GetController(sn);
+			newCt.IsCache = true;
+
+			// Push stack
+			m_CurrentStackScreen.Push(sn);
+		}, () => 
+		{
+			// Thread 2
+			if (ct != null)
+			{
+				ct.OnHide();
+			}
+			// Animation
+			AnimType animType = (imme) ? AnimType.NO_ANIM : AnimType.HIDE_BACK;
+			StartCoroutine (IEPlayAnimation (preSn, animType, () => 
+				{
+					DeactiveAScene(preSn);
+				}));
+		}, onActive, onDeactive);
+	}
+
+	private void OpenMenu(string sceneName, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
+	{
+		string sn = sceneName;
+
+		// Next index
+		int ip = -1;
+		float ic = 0.8f;
+
+		CmOpen (sn, ip, ic, null, true, string.Empty, null, () => { m_Menu = m_DictAllScene[sn]; }, onActive, onDeactive);
+	}
+
+	private IEnumerator IEWaitForNotBusy()
+	{
+		while (m_IsBusy) 
+		{
+			yield return new WaitForEndOfFrame ();
+		}
+
+		m_IsBusy = true;
+	}
+
+    /*
+	private void OnGUI()
+	{
+		GUILayout.BeginVertical ();
+
+		if (GUILayout.Button("Print all stack"))
+		{
+			foreach (var item in m_DictScreen) 
+            {
+                Debug.Log ("Main: " + item.Key);
+				foreach (var it in item.Value) 
+				{
+					Debug.Log (it);
+				}
+			}
+		}
+
+        if (GUILayout.Button("Print all popup"))
+        {
+            foreach (var item in m_StackPopUp)
+            {
+                Debug.Log (item);
+            }
+        }
+
+        if (GUILayout.Button("Close Imme"))
+        {
+            Close(true);
+        }
+
+		GUILayout.EndVertical ();
+	}
+    */   
+
 	#endregion
-	
 }

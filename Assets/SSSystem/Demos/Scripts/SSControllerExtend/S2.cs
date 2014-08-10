@@ -15,4 +15,9 @@ public class S2 : SSController
 	{
 		Debug.Log("Set data : S2");
 	}
+
+    public override void OnKeyBack()
+    {
+        SceneManagerDemo.Instance.GoHome();
+    }
 }

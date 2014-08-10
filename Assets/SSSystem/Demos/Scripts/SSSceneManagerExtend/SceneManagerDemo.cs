@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class SceneManagerSound : SSSceneManager
+public class SceneManagerDemo : SSSceneManager
 {
 	[SerializeField]
 	AudioClip[] m_Clips;
