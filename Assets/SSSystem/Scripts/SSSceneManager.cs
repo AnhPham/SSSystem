@@ -74,7 +74,7 @@ public class SSSceneManager : MonoBehaviour
 
 	#region Event
 	public OnScreenStartChangeDelegate onScreenStartChange;
-	public OnSceneActivedDelegate onSceneActived;
+	public OnSceneActivedDelegate onSceneFocus;
 	#endregion
 
 	#region Serialize Field
@@ -242,19 +242,19 @@ public class SSSceneManager : MonoBehaviour
 		string sn = sceneName;
 
 		SSApplication.LoadLevelAdditive (sn, m_IsLoadAsync, (GameObject root) =>
-			{
-				GameObject scene = root;
+		{
+			GameObject scene = root;
 
-				// Add to dictionary
-				m_DictAllScene.Add(sn, scene);
-				scene.transform.parent = m_Scenes.transform;
+			// Add to dictionary
+			m_DictAllScene.Add(sn, scene);
+			scene.transform.parent = m_Scenes.transform;
 
-				// DeActive
-				scene.SetActive (false);
+			// DeActive
+			scene.SetActive (false);
 
-				// Event
-				OnSceneLoad (scene);
-			});
+			// Event
+			OnSceneLoad (scene);
+		});
 	}
 
     public string DestroyCurrentStack()
@@ -405,6 +405,9 @@ public class SSSceneManager : MonoBehaviour
 		m_GlobalBgm = bgmName;
 	}
 
+    /// <summary>
+    /// Clears the global bgm.
+    /// </summary>
 	public void ClearGlobalBgm()
 	{
 		m_GlobalBgm = string.Empty;
@@ -455,32 +458,6 @@ public class SSSceneManager : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Raises the lock event. When a popup is showed, the below scene will be locked. Override if necessary.
-	/// </summary>
-	/// <param name="scene">Scene which be locked</param>
-	protected virtual void OnLock(GameObject scene)
-	{
-		SSController[] ctrls = scene.GetComponentsInChildren<SSController>(true);
-		foreach (SSController ctrl in ctrls)
-		{
-			ctrl.OnLock();
-		}
-	}
-
-	/// <summary>
-	/// Raises the unlock event. When a popup is hided, the below scene will be unlocked. Override if necessary.
-	/// </summary>
-	/// <param name="scene">Scene which be unlocked</param>
-	protected virtual void OnUnlock(GameObject scene)
-	{
-		SSController[] ctrls = scene.GetComponentsInChildren<SSController>(true);
-		foreach (SSController ctrl in ctrls)
-		{
-			ctrl.OnUnlock();
-		}
-	}
-
-	/// <summary>
 	/// Play the BGM. Override it.
 	/// </summary>
 	/// <param name="bgmName">Bgm name.</param>
@@ -521,7 +498,7 @@ public class SSSceneManager : MonoBehaviour
     /// <param name="sceneName">Scene name.</param>
     protected virtual void OnAnimationFinish(string sceneName)
     {
-
+        Debug.Log("If you have the problem with NGUI which display not correctly when animation finish, you can SetDirty() to all UIPanel in UIPanel.list in this event for a refresh.");
     }
 
 	/// <summary>
@@ -529,7 +506,10 @@ public class SSSceneManager : MonoBehaviour
 	/// </summary>
 	protected virtual void OnFirstSceneLoad()
 	{
-		Screen (m_FirstSceneName);
+        if (!string.IsNullOrEmpty(m_FirstSceneName))
+        {
+            Screen (m_FirstSceneName);
+        }
 	}
 
 	protected void CreateLoadingTop(GameObject root)
@@ -717,8 +697,12 @@ public class SSSceneManager : MonoBehaviour
 					}
 					break;
 
-				case Bgm.SAME:
-					ctrl.CurrentBgm = curBgm;
+                case Bgm.SAME:
+                    ctrl.CurrentBgm = curBgm;
+                    if (!string.IsNullOrEmpty(curBgm))
+                    {
+                        PlayBGM(curBgm);
+                    }
 					break;
 				case Bgm.CUSTOM:
 					StopBGM ();
@@ -939,7 +923,7 @@ public class SSSceneManager : MonoBehaviour
 
 	private IEnumerator IELoadMenu (string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
 	{
-		yield return StartCoroutine (IEWaitForNotBusy ());
+        yield return new WaitForEndOfFrame();
 		OpenMenu (sceneName, onActive, onDeactive);
 	}
 
@@ -1005,6 +989,7 @@ public class SSSceneManager : MonoBehaviour
 				{
 					// Do Nothing
 				}
+                m_IsBusy = false;
 			}
 		}
 	}
@@ -1063,17 +1048,20 @@ public class SSSceneManager : MonoBehaviour
 		// On Show
 		if (ct != null)
 		{
-			ct.OnShow();
+            ct.OnFocus(true);
 		}
 
 		// On Scene Showed
-		if (onSceneActived != null)
+		if (onSceneFocus != null)
 		{
-			onSceneActived(sceneName);
+			onSceneFocus(sceneName);
 		}
 
 		// Bgm change
-		BgmSceneClose(ct);
+        if (ct != null)
+        {
+            BgmSceneClose(ct);
+        }
 	}
 
 	private void ShowAndBgmChangeOpen(string sceneName, string curBgm)
@@ -1084,17 +1072,21 @@ public class SSSceneManager : MonoBehaviour
 		// On Show
 		if (ct != null)
 		{
-			ct.OnShow();
+            ct.OnFocus(true);
+            ct.OnShow();
 		}
 
 		// On Scene Showed
-		if (onSceneActived != null)
+		if (onSceneFocus != null)
 		{
-			onSceneActived(sceneName);
+			onSceneFocus(sceneName);
 		}
 
 		// Bgm change
-		BgmSceneOpen (curBgm, ct);
+        if (ct != null)
+        {
+            BgmSceneOpen(curBgm, ct);
+        }
 	}
 
 	private void ActiveAScene(string sceneName)
@@ -1366,7 +1358,8 @@ public class SSSceneManager : MonoBehaviour
 			ShowEmptyShield ();
 
 			// Hide
-			ct.OnHide ();
+            ct.OnFocus (false);
+            ct.OnHide ();
 
 			StartCoroutine(IEPlayAnimation(sn, animType, () =>
 				{
@@ -1399,7 +1392,10 @@ public class SSSceneManager : MonoBehaviour
 		}
 		else
 		{
-			preSn = m_CurrentStackScreen.Peek();
+            if (m_CurrentStackScreen != null && m_CurrentStackScreen.Count >= 1)
+            {
+                preSn = m_CurrentStackScreen.Peek();
+            }
 		}
 
 		CmClose (curSn, imme, () => 
@@ -1560,7 +1556,7 @@ public class SSSceneManager : MonoBehaviour
 				// On Hide
 				if (ct != null)
 				{
-					ct.OnHide();
+                    ct.OnFocus (false);
 				}
 			}, null, onActive, onDeactive);
 	}
@@ -1591,10 +1587,10 @@ public class SSSceneManager : MonoBehaviour
 		if (sn == top) // First time load
 		{
 			CmOpen (sn, 0, 0, data, true, string.Empty, () => 
-				{
-					// Hide All
-					HideAll (prevStack);
-				}, null, onActive, onDeactive);
+			{
+				// Hide All
+				HideAll (prevStack);
+			}, null, onActive, onDeactive);
 		} 
 		else // Not first time
 		{
@@ -1608,6 +1604,7 @@ public class SSSceneManager : MonoBehaviour
 			SSController ct = GetController (top);
 			if (ct != null) 
 			{
+                Debug.Log(ct.CurrentBgm);
 				ShowAndBgmChangeOpen (top, ct.CurrentBgm);
 			}
 
@@ -1659,7 +1656,7 @@ public class SSSceneManager : MonoBehaviour
 			// Thread 2
 			if (ct != null)
 			{
-				ct.OnHide();
+                ct.OnFocus (false);
 			}
 			// Animation
 			AnimType animType = (imme) ? AnimType.NO_ANIM : AnimType.HIDE_BACK;

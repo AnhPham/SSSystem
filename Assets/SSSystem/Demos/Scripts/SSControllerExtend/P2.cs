@@ -29,7 +29,7 @@ public class P2 : SSController
 
 	private void Update()
 	{
-		if (!IsLock && Input.GetMouseButtonUp(0))
+        if (IsFocus && Input.GetMouseButtonDown(0))
 		{
 			if (LeftMouseClick != null)
 			{

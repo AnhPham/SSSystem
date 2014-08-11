@@ -25,9 +25,9 @@ public class P1 : SSController
 
 	private void Update()
 	{
-		if (!IsLock && Input.GetMouseButtonUp(0))
+		if (IsFocus && Input.GetMouseButtonDown(0))
 		{
-			Debug.Log("P1: Click");
+            Debug.Log("P1: Click " + Time.time);
 		}
 	}
 }

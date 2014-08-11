@@ -24,7 +24,7 @@ public class SSController : MonoBehaviour
 	#endregion
 
 	#region Protected Member
-	public bool 	IsLock 		{ get; private set; }
+	public bool 	IsFocus 	{ get; private set; }
 	public bool 	IsStarted 	{ get; private set; }
 	#endregion
 
@@ -46,7 +46,7 @@ public class SSController : MonoBehaviour
 	{
 		if (SSSceneManager.Instance == null)
 		{
-			StartCoroutine (OnStartWithoutSceneManager ());
+            OnStartWithoutSceneManager();
 		}
 
 		OnEnableFS ();
@@ -54,11 +54,10 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// This event will be raised at start time you play the scene if your scene doesn't have SSSceneManager. Convenient for testing.
+    /// This event will not be raised if you open this scene from a Base scene contains SSSceneManager. Write anything here for testing. It's called at Start().
 	/// </summary>
-	public virtual IEnumerator OnStartWithoutSceneManager()
+    public virtual void OnStartWithoutSceneManager()
 	{
-		yield return 0;
 	}
 
 	/// <summary>
@@ -69,7 +68,7 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Start to show
+    /// Raise the event which right after scene loaded or actived. An Unity default event which be called when set active true a game object.
 	/// </summary>
 	public virtual void OnEnable()
 	{
@@ -80,7 +79,7 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Set data after starting to show
+    /// Raise the event which right after scene's enable. You can get the transfer-data here. 
 	/// </summary>
 	/// <param name="data">Data type is object type, allows any object.</param>
 	public virtual void OnSet(object data)
@@ -88,50 +87,37 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Set adding data instead of showing the same popup.
-	/// </summary>
-	/// <param name="data">Data.</param>
-	public virtual void OnSetAdding(object data)
-	{
-	}
-
-	/// <summary>
-	/// Finish to show
+    /// Raises the event when show-animation complete (only one time when this scene's opened by Screen(), AddScreen(), PopUp() of SSSceneManager)
 	/// </summary>
 	public virtual void OnShow()
 	{
 	}
 
 	/// <summary>
-	/// Start to hide
+    /// Raises the event when hide-animation start (only one time when this scene's closed by Close() of SSSceneManager)
 	/// </summary>
 	public virtual void OnHide()
 	{
 	}
 
 	/// <summary>
-	/// Finish to hide
+    /// Raises the event when hide-animation complete. An Unity default event which be called when set active false a game object.
 	/// </summary>
 	public virtual void OnDisable()
 	{
 	}
 
 	/// <summary>
-	/// Focus back after finish to hide the pop up which above it
+    /// Raises the event when this scene gets focus or loses focus.
 	/// </summary>
-	public virtual void OnFocusBack()
+    public virtual void OnFocus(bool isFocus)
 	{
+        IsFocus = isFocus;
 	}
 
+    /*
 	/// <summary>
-	/// Focus lost after start to show the pop up which above it
-	/// </summary>
-	public virtual void OnFocusLost()
-	{
-	}
-
-	/// <summary>
-	/// Lock scene
+	/// On Lock scene
 	/// </summary>
 	public virtual void OnLock()
 	{
@@ -139,15 +125,16 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Unlock scene
+	/// On Unlock scene
 	/// </summary>
 	public virtual void OnUnlock()
 	{
 		IsLock = false;
 	}
+    */
 
 	/// <summary>
-	/// Raises the key back click event (for android)
+    /// Raises the key back click event (for android). By default, the Close() method of SSSceneManager will be called.
 	/// </summary>
 	public virtual void OnKeyBack()
 	{
@@ -155,7 +142,7 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Visible after Invisible
+    /// Visible this scene by enable all its cameras
 	/// </summary>
 	public virtual void Visible()
 	{
@@ -167,7 +154,7 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Invisible without deactivating game object
+    /// Invisible this scene by disable all its cameras
 	/// </summary>
 	public virtual void Invisible()
 	{

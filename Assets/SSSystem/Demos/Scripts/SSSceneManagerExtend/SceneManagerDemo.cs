@@ -22,15 +22,6 @@ public class SceneManagerDemo : SSSceneManager
 		m_Audios.Add ("S1", m_Clips[0]);
 		m_Audios.Add ("S2", m_Clips[1]);
 	}
-	protected override void OnLock (GameObject scene)
-	{
-		base.OnLock (scene);
-	}
-
-	protected override void OnUnlock (GameObject scene)
-	{
-		base.OnUnlock (scene);
-	}
 
 	protected override void PlayBGM (string bgmName)
 	{
@@ -48,4 +39,10 @@ public class SceneManagerDemo : SSSceneManager
 	{
 		Camera.main.audio.Stop();
 	}
+
+    protected override void OnAnimationFinish(string sceneName)
+    {
+        // If you have the problem with NGUI which display not correctly when animation finish,
+        // You can SetDirty() to all UIPanel in UIPanel.list in this event for a refresh.
+    }
 }

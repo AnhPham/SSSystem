@@ -43,12 +43,18 @@ public class SSRootScale : SSRoot
 
 	[SerializeField]
 	int defaultHeight = 1136;
+
+    [SerializeField]
+    Camera[] m_FullScreenCameras;
+
+    [SerializeField]
+    GameObject[] m_FullScreenPanels;
+
+    [SerializeField]
+    GameObject[] m_Roots;
 	#endregion
 
-	#region Private
-	Camera[] m_Cameras;
-	GameObject[] m_Roots;
-	GameObject[] m_Panels;
+	#region Private	
 	Rect currentRect;
 
 	bool isChanged;
@@ -109,14 +115,16 @@ public class SSRootScale : SSRoot
 	#region Private Function
 	protected override void Start()
 	{
+        /*
 		// Find all cameras in Scene
-		m_Cameras = gameObject.GetComponentsInChildren<Camera> (true);
+		m_FullScreenCameras = gameObject.GetComponentsInChildren<Camera> (true);
 
 		// Find all UIRoot in Scene
 		m_Roots = GetRoots ();
 
 		// Find all UIPanel in Scene
-		m_Panels = GetPanels ();
+		m_FullScreenPanels = GetPanels ();
+        */
 
 		// Trick Root
 		DisableUIRoot ();
@@ -228,16 +236,13 @@ public class SSRootScale : SSRoot
 
 	private void SetCameraRect(Rect rect)
 	{
-		if (m_Cameras == null)
+		if (m_FullScreenCameras == null)
 			return;
 
-		foreach (Camera cam in m_Cameras)
+		foreach (Camera cam in m_FullScreenCameras)
 		{
-			if (cam.GetComponent<SSDoNotTouchMe> () == null) 
-			{
-				cam.rect = rect;
-				cam.orthographicSize = this.camera2DOrthographicSize;
-			}
+            cam.rect = rect;
+            cam.orthographicSize = this.camera2DOrthographicSize;
 		}
 	}
 
@@ -248,38 +253,35 @@ public class SSRootScale : SSRoot
 
 		foreach (GameObject r in m_Roots)
 		{
-			if (r.GetComponent<SSDoNotTouchMe> () == null) 
-			{
-				MonoBehaviour uiroot = r.GetComponent ("UIRoot") as MonoBehaviour;
+            MonoBehaviour uiroot = r.GetComponent ("UIRoot") as MonoBehaviour;
 
-				uiroot.GetType ().GetField ("scalingStyle").SetValue (uiroot, 1);
-				uiroot.GetType ().GetField ("manualHeight").SetValue (uiroot, currentHeight);
-			}
+            if (uiroot != null)
+            {
+                uiroot.GetType().GetField("scalingStyle").SetValue(uiroot, 1);
+                uiroot.GetType().GetField("manualHeight").SetValue(uiroot, currentHeight);
+            }
 		}
 	}
 
 	private void SetPanelSize()
 	{
-		if (m_Panels == null)
+		if (m_FullScreenPanels == null)
 			return;
 
-		foreach (GameObject p in m_Panels)
+		foreach (GameObject p in m_FullScreenPanels)
 		{
-			if (p.GetComponent<SSDoNotTouchMe> () == null) 
-			{
-				MonoBehaviour uipanel = p.GetComponent ("UIPanel") as MonoBehaviour;
+            MonoBehaviour uipanel = p.GetComponent ("UIPanel") as MonoBehaviour;
 
-				if (uipanel != null) 
-				{
-                    float w = defaultHeight * CalcAspectRatio(defaultAspect);
-					float width = w + 2;
-					float height = w / currentAspectRatio;
+            if (uipanel != null) 
+            {
+                float w = defaultHeight * CalcAspectRatio(defaultAspect);
+                float width = w + 2;
+                float height = w / currentAspectRatio;
 
-					uipanel.GetType ().InvokeMember ("clipping", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ 3 });
-                    uipanel.GetType ().InvokeMember ("clipSoftness", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ new Vector2(0, 0) });
-                    uipanel.GetType ().InvokeMember ("baseClipRegion", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ new Vector4 (0, 0, width, height) });
-				}
-			}
+                uipanel.GetType ().InvokeMember ("clipping", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ 3 });
+                uipanel.GetType ().InvokeMember ("clipSoftness", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ new Vector2(0, 0) });
+                uipanel.GetType ().InvokeMember ("baseClipRegion", BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty, System.Type.DefaultBinder, uipanel, new object[]{ new Vector4 (0, 0, width, height) });
+            }
 		}
 	}
 

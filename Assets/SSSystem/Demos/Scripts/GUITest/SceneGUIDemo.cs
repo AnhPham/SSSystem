@@ -13,27 +13,27 @@ public class SceneGUIDemo : MonoBehaviour
 
 		OnGUIExtend ();
 
-		if (GUILayout.Button("Screen 1_1"))
+		if (GUILayout.Button("Screen 1"))
 		{
 			ScreenS1();
 		}
 
-        if (GUILayout.Button("Add Screen 1_2"))
+        if (GUILayout.Button("Add Screen 3"))
         {
-            AddScreen12();
+            AddScreen3();
         }
 
-		if (GUILayout.Button("Screen 2_1"))
+		if (GUILayout.Button("Screen 2"))
 		{
 			ScreenS2();
 		}
 
-        if (GUILayout.Button("Add Screen 2_2"))
+        if (GUILayout.Button("Add Screen 4"))
         {
-            AddScreen22();
+            AddScreen4();
         }
 
-		if (GUILayout.Button("Load Menu"))
+		if (GUILayout.Button("Show Menu"))
 		{
 			Menu();
 		}
@@ -81,9 +81,9 @@ public class SceneGUIDemo : MonoBehaviour
 			PopUpP2();
 		}
 
-		if (GUILayout.Button("Screen 1_2"))
+		if (GUILayout.Button("Screen 3"))
 		{
-			ScreenS1(); // Current screen of this stack is Screen 1_2
+			ScreenS1(); // Current screen of this stack is Screen 3
 		}
 
         if (GUILayout.Button("PopUp1 - Close"))
@@ -151,14 +151,14 @@ public class SceneGUIDemo : MonoBehaviour
 		SSSceneManager.Instance.Screen("S2");
 	}
 
-	private void AddScreen12()
+	private void AddScreen3()
 	{
-		SSSceneManager.Instance.AddScreen("SS1");
+		SSSceneManager.Instance.AddScreen("S3");
 	}
 
-	private void AddScreen22()
+	private void AddScreen4()
 	{
-		SSSceneManager.Instance.AddScreen("SS2");
+		SSSceneManager.Instance.AddScreen("S4");
 	}
 
 	private void Menu()
@@ -197,6 +197,6 @@ public class SceneGUIDemo : MonoBehaviour
 
 	private void OnP2LeftMouseClick()
 	{
-		Debug.Log("SceneGUITest: P2 Click");
+        Debug.Log("SceneGUIDemo: P2 Click " + Time.time);
 	}
 }

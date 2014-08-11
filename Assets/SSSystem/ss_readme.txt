@@ -1,6 +1,6 @@
 I. How to use Demo:
-1. Add all scenes in SSSystem/Demos/Scenes to Build Setting
-2. Play this scene: SSSystem/Demos/Scenes/Base/BaseSound
+1. Add all scenes in SSSystem/Demos/Scenes/Common to Build Setting
+2. Play this scene: SSSystem/Demos/Scenes/Base/BaseDemo
 --------------------------------------------------------
 II. All documents:
 1. Presentation:
