@@ -15,8 +15,6 @@ public class S3 : SSController
 
 	public override void OnSet (object data)
 	{
-		Debug.Log("Set data : S3");
-
         if (m_Cube1 == null)
         {
             m_Cube1 = GameObject.Find("Cube1");
@@ -30,5 +28,20 @@ public class S3 : SSController
         base.OnFocus(isFocus);
 
         m_Cube1.SetActive(isFocus);
+    }
+
+    public void OnButtonPopUp1Tap()
+    {
+        SceneManagerDemo.Instance.PopUp("P1");
+    }
+
+    public void OnButtonPopUp2Tap()
+    {
+        SceneManagerDemo.Instance.PopUp("P2");
+    }
+
+    public void OnButtonCloseTap()
+    {
+        SceneManagerDemo.Instance.Close();
     }
 }

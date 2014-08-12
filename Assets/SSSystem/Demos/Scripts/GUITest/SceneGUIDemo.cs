@@ -176,17 +176,7 @@ public class SceneGUIDemo : MonoBehaviour
 		SSSceneManager.Instance.PopUp
 		(
 			"P2",
-			"Two", 
-			(SSController ctrl) => 
-			{
-				P2 p2 = (P2)ctrl;
-				p2.LeftMouseClick += OnP2LeftMouseClick;
-			},
-			(SSController ctrl) => 
-			{
-				P2 p2 = (P2)ctrl;
-				p2.LeftMouseClick -= OnP2LeftMouseClick;
-			}
+			"Two"
 		);
 	}
 

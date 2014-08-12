@@ -774,11 +774,6 @@ public class SSSceneManager : MonoBehaviour
 			}
 			yield return StartCoroutine (Pause (time));
             yield return new WaitForEndOfFrame();
-
-            OnAnimationFinish(sn);
-
-			if (callback != null)
-				callback ();
 		}
 		else
 		{
@@ -786,10 +781,14 @@ public class SSSceneManager : MonoBehaviour
 			{
 				an.transform.localPosition = Vector3.zero;
 			}
-
-			if (callback != null)
-				callback ();
 		}
+
+        // Animation finish
+        OnAnimationFinish(sn);
+
+        // Callback
+        if (callback != null)
+            callback ();
 	}
 
 	#if UNITY_EDITOR || UNITY_ANDROID
@@ -1043,18 +1042,16 @@ public class SSSceneManager : MonoBehaviour
 	private void ShowAndBgmChangeClose(string sceneName)
 	{
 		// Prev Scene
-		SSController ct = GetController (sceneName);
+        string sn = sceneName;
+		SSController ct = GetController (sn);
 
 		// On Show
-		if (ct != null)
-		{
-            ct.OnFocus(true);
-		}
+        OnFocus(sn, ct, true);
 
 		// On Scene Showed
 		if (onSceneFocus != null)
 		{
-			onSceneFocus(sceneName);
+			onSceneFocus(sn);
 		}
 
 		// Bgm change
@@ -1067,19 +1064,20 @@ public class SSSceneManager : MonoBehaviour
 	private void ShowAndBgmChangeOpen(string sceneName, string curBgm)
 	{
 		// Prev Scene
-		SSController ct = GetController (sceneName);
+        string sn = sceneName;
+		SSController ct = GetController (sn);
 
 		// On Show
 		if (ct != null)
 		{
-            ct.OnFocus(true);
+            OnFocus(sn, ct, true);
             ct.OnShow();
 		}
 
 		// On Scene Showed
 		if (onSceneFocus != null)
 		{
-			onSceneFocus(sceneName);
+			onSceneFocus(sn);
 		}
 
 		// Bgm change
@@ -1358,7 +1356,7 @@ public class SSSceneManager : MonoBehaviour
 			ShowEmptyShield ();
 
 			// Hide
-            ct.OnFocus (false);
+            OnFocus(sn, ct, false);
             ct.OnHide ();
 
 			StartCoroutine(IEPlayAnimation(sn, animType, () =>
@@ -1405,6 +1403,15 @@ public class SSSceneManager : MonoBehaviour
 
 				// Show & BGM change
 				ShowAndBgmChangeClose(preSn);
+
+                // Focus Menu
+                if (m_StackPopUp.Count == 0)
+                {
+                    if (m_Menu != null)
+                    {
+                        OnFocus(m_Menu.name, GetController(m_Menu.name), true);
+                    }
+                }
 
 				// Callback
 				if (callback != null)
@@ -1519,18 +1526,19 @@ public class SSSceneManager : MonoBehaviour
 		// Prev Scene
 		SSController ct = null;
 		string curBgm = null;
+        string preSn = null;
 
 		// Highest popup
 		if (m_StackPopUp.Count >= 1)
 		{
-			string preSn = m_StackPopUp.Peek();
+			preSn = m_StackPopUp.Peek();
 
 			ct = GetController(preSn);
 		}
 		// Or highest screen
 		else if (m_CurrentStackScreen != null && m_CurrentStackScreen.Count >= 1)
 		{
-			string preSn = m_CurrentStackScreen.Peek();
+			preSn = m_CurrentStackScreen.Peek();
 
 			ct = GetController(preSn);
 		}
@@ -1548,17 +1556,21 @@ public class SSSceneManager : MonoBehaviour
 			ShieldOn(0);
 		}
 
+        // Lost Focus Pre scene
+        OnFocus(preSn, ct, false);
+
+        // Lost Focus Menu
+        if (m_Menu != null)
+        {
+            OnFocus(m_Menu.name, GetController(m_Menu.name), false);
+        }
+
 		// Push stack
 		m_StackPopUp.Push(sn);
 
 		CmOpen (sn, ip, ic, data, imme, curBgm, () => 
-			{
-				// On Hide
-				if (ct != null)
-				{
-                    ct.OnFocus (false);
-				}
-			}, null, onActive, onDeactive);
+		{
+		}, null, onActive, onDeactive);
 	}
 
 	private void OpenScreen(string sceneName, object data = null, SSCallBackDelegate onActive = null, SSCallBackDelegate onDeactive = null)
@@ -1604,7 +1616,6 @@ public class SSSceneManager : MonoBehaviour
 			SSController ct = GetController (top);
 			if (ct != null) 
 			{
-                Debug.Log(ct.CurrentBgm);
 				ShowAndBgmChangeOpen (top, ct.CurrentBgm);
 			}
 
@@ -1642,6 +1653,9 @@ public class SSSceneManager : MonoBehaviour
 		// Cur Bgm
 		string curBgm = ct.CurrentBgm;
 
+        // Thread 2
+        OnFocus(preSn, ct, false);
+
 		// Thread 1
 		CmOpen (sn, ip, ic, data, imme, curBgm, () => 
 		{
@@ -1653,11 +1667,6 @@ public class SSSceneManager : MonoBehaviour
 			m_CurrentStackScreen.Push(sn);
 		}, () => 
 		{
-			// Thread 2
-			if (ct != null)
-			{
-                ct.OnFocus (false);
-			}
 			// Animation
 			AnimType animType = (imme) ? AnimType.NO_ANIM : AnimType.HIDE_BACK;
 			StartCoroutine (IEPlayAnimation (preSn, animType, () => 
@@ -1687,6 +1696,28 @@ public class SSSceneManager : MonoBehaviour
 
 		m_IsBusy = true;
 	}
+
+    private void OnFocus(string sceneName, SSController ct, bool isFocus)
+    {
+        string sn = sceneName;
+
+        if (ct != null)
+        {
+            ct.IsFocus = isFocus;
+            ct.OnFocus(isFocus);
+        }
+
+        if (!string.IsNullOrEmpty(sn) && m_DictAllScene.ContainsKey(sn))
+        {
+            GameObject sc = m_DictAllScene[sn];
+
+            Canvas[] cvs = sc.GetComponentsInChildren<Canvas>(true);
+            foreach (var cv in cvs)
+            {
+                cv.receivesEvents = isFocus;
+            }
+        }
+    }
 
     /*
 	private void OnGUI()

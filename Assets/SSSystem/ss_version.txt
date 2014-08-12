@@ -3,4 +3,4 @@ SS-SYSTEM VERSION 2.0.0
 RELEASE NOTES:
 
 Version 2.0.0
-SUPER BIG UPDATE: A new system!
+SUPER BIG UPDATE: A new system! Support uGUI!

@@ -10,4 +10,14 @@ public class Menu : SSController
 
 		IsCache = true;
 	}
+
+    public void OnButtonScreen1Tap()
+    {
+        SceneManagerDemo.Instance.Screen("S1");
+    }
+
+    public void OnButtonScreen2Tap()
+    {
+        SceneManagerDemo.Instance.Screen("S2");
+    }
 }

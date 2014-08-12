@@ -4,6 +4,7 @@
  */
 
 using UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections;
 
 public class SSRoot : MonoBehaviour 
@@ -18,6 +19,7 @@ public class SSRoot : MonoBehaviour
 	protected virtual void Start()
 	{
 		CameraSetting ();
+        EventSetting();
 
 		if (!PreventLoadCallBack && SSSceneManager.Instance != null)
 		{
@@ -38,4 +40,17 @@ public class SSRoot : MonoBehaviour
 			cam.clearFlags = CameraClearFlags.Depth;	
 		}
 	}
+
+    /// <summary>
+    /// Events setting.
+    /// </summary>
+    protected void EventSetting()
+    {
+        if (SSSceneManager.Instance == null && Application.isPlaying)
+        {
+            GameObject go = new GameObject("EventSystem");
+            go.AddComponent<EventSystem>();
+            go.AddComponent<TouchInputModule>();
+        }
+    }
 }

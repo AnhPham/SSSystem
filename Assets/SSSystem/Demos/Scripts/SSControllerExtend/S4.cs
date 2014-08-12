@@ -15,8 +15,6 @@ public class S4 : SSController
 
     public override void OnSet (object data)
     {
-        Debug.Log("Set data : S4");
-
         if (m_Sphere1 == null)
         {
             m_Sphere1 = GameObject.Find("Sphere1");
@@ -33,5 +31,20 @@ public class S4 : SSController
     public override void OnHide()
     {
         m_Sphere1.SetActive(false);
+    }
+
+    public void OnButtonPopUp1Tap()
+    {
+        SceneManagerDemo.Instance.PopUp("P1");
+    }
+
+    public void OnButtonPopUp2Tap()
+    {
+        SceneManagerDemo.Instance.PopUp("P2");
+    }
+
+    public void OnButtonCloseTap()
+    {
+        SceneManagerDemo.Instance.Close();
     }
 }

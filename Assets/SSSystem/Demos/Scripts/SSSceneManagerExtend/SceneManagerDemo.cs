@@ -40,6 +40,14 @@ public class SceneManagerDemo : SSSceneManager
 		Camera.main.audio.Stop();
 	}
 
+    protected override void OnFirstSceneLoad()
+    {
+        LoadMenu("Menu", null, (SSController ctrl) =>
+        {
+            Screen("S1");
+        });
+    }
+
     protected override void OnAnimationFinish(string sceneName)
     {
         // If you have the problem with NGUI which display not correctly when animation finish,

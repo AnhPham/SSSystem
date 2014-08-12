@@ -24,7 +24,7 @@ public class SSController : MonoBehaviour
 	#endregion
 
 	#region Protected Member
-	public bool 	IsFocus 	{ get; private set; }
+	public bool 	IsFocus 	{ get; set; }
 	public bool 	IsStarted 	{ get; private set; }
 	#endregion
 
@@ -112,7 +112,6 @@ public class SSController : MonoBehaviour
 	/// </summary>
     public virtual void OnFocus(bool isFocus)
 	{
-        IsFocus = isFocus;
 	}
 
     /*

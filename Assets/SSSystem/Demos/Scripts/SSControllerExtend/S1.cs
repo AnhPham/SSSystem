@@ -11,13 +11,23 @@ public class S1 : SSController
 		IsCache = true;
 	}
 
-	public override void OnSet (object data)
-	{
-		Debug.Log("Set data : S1");
-	}
-
     public override void OnKeyBack()
     {
         SceneManagerDemo.Instance.GoHome();
+    }
+
+    public void OnButtonPopUp1Tap()
+    {
+        SceneManagerDemo.Instance.PopUp("P1");
+    }
+
+    public void OnButtonPopUp2Tap()
+    {
+        SceneManagerDemo.Instance.PopUp("P2");
+    }
+
+    public void OnButtonAddScreen3Tap()
+    {
+        SceneManagerDemo.Instance.AddScreen("S3");
     }
 }

@@ -117,7 +117,8 @@ public class SSAnimation : SSMotion
 		// We should bring this scene to somewhere far when it awake.
 		// Then the animation will automatically bring it back at next frame.
 		// This trick remove flicker at the first frame.
-		transform.localPosition = new Vector3(99999, 0, 0);
+		
+        transform.localPosition = new Vector3(99999, 0, 0);
 	}
 
 	/// <summary>
