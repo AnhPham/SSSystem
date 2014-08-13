@@ -4,6 +4,7 @@
  */
 
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -444,11 +445,11 @@ public class SSSceneManager : MonoBehaviour
 		if (m_LoadingTop == null) 
 		{
 			SSApplication.LoadLevelAdditive (m_LoadingSceneName, m_IsLoadAsync, (GameObject root) =>
-				{
-					CreateLoadingTop(root);
+			{
+				CreateLoadingTop(root);
 
-					OnFirstSceneLoad ();
-				});
+				OnFirstSceneLoad ();
+			});
 		}
 	}
 
@@ -548,11 +549,8 @@ public class SSSceneManager : MonoBehaviour
 			m_ShieldTop.SetActive (true);
 		}
 
-		MeshRenderer mesh = m_ShieldTop.GetComponentInChildren<MeshRenderer> ();
-		mesh.material.color = new Color (0, 0, 0, alpha);
-
-		// Lock
-		LockTopScene ();
+        Image image = m_ShieldTop.GetComponentInChildren<Image> ();
+        image.color = new Color (0, 0, 0, alpha);
 	}
 
 	protected void ShieldTopOff()
@@ -560,9 +558,6 @@ public class SSSceneManager : MonoBehaviour
 		if (m_ShieldTop != null) 
 		{
 			m_ShieldTop.SetActive (false);
-
-			// Unlock
-			UnlockTopScene ();
 		}
 	}
 
@@ -588,11 +583,8 @@ public class SSSceneManager : MonoBehaviour
 			m_ListShield[i].SetActive(true);
 		}
 
-		MeshRenderer mesh = m_ListShield[i].GetComponentInChildren<MeshRenderer> ();
-		mesh.material.color = color;
-
-		// Lock
-		LockTopScene ();
+        Image image = m_ListShield[i].GetComponentInChildren<Image> ();
+        image.color = color;
 	}
 
 	protected bool IsShieldActive(int i)
@@ -611,17 +603,6 @@ public class SSSceneManager : MonoBehaviour
 
 		if (m_ListShield.Count >= i)
 			m_ListShield[i].SetActive(false);
-
-		// Unlock
-		UnlockTopScene ();
-	}
-
-	protected void LockTopScene()
-	{
-	}
-
-	protected void UnlockTopScene()
-	{
 	}
 
 	protected void SetPosition(string sn, int i)
@@ -1158,23 +1139,27 @@ public class SSSceneManager : MonoBehaviour
 		else
 		{
 			SSApplication.LoadLevelAdditive (sn, m_IsLoadAsync, (GameObject root) =>
-				{
-					GameObject scene = root;
+			{
+				GameObject scene = root;
 
-					// Add to dictionary
-					m_DictAllScene.Add(sn, scene);
-					scene.transform.parent = m_Scenes.transform;
+				// Add to dictionary
+				m_DictAllScene.Add(sn, scene);
+				scene.transform.parent = m_Scenes.transform;
 
-					// Callback
-					SetActiveDeactiveCallback (sn, onActive, onDeactive);
+				// Callback
+				SetActiveDeactiveCallback (sn, onActive, onDeactive);
 
-					// Active
-					ActiveAScene (sn);
+				// Active
+				ActiveAScene (sn);
 
-					// Event
-					OnSceneLoad (scene);
-					onLoaded ();
-				});
+                // Config
+                SSController ct = GetController(sn);
+                if (ct != null) ct.Config();
+
+				// Event
+				OnSceneLoad (scene);
+				onLoaded ();
+			});
 		}
 	}
 
@@ -1196,19 +1181,22 @@ public class SSSceneManager : MonoBehaviour
 		}
 
 		// Close all screen of this stack
-        foreach (var screen in stackScreen) 
-		{
-			SSController ct = GetController (screen);
-			if (ct != null) 
-			{
-				ct.IsCache = !isClearStackScreen;
-			}
-			CmClose (screen, true);
-		}
+        if (stackScreen.Count >= 1)
+        {
+            string sn = stackScreen.Peek();
+
+            SSController ct = GetController (sn);
+            if (ct != null) 
+            {
+                ct.IsCache = true;
+            }
+            CmClose (sn, true);
+        }
 
 		// Clear if not cache
 		if (isClearStackScreen) 
 		{
+            DestroyScenesFrom(bot);
 			stackScreen.Clear ();
 		}
 	}
@@ -1261,13 +1249,10 @@ public class SSSceneManager : MonoBehaviour
 			m_ShieldEmpty.SetActive (true);
 		}
 
-		MeshRenderer mesh = m_ShieldEmpty.GetComponentInChildren<MeshRenderer> ();
-		mesh.material.color = new Color (0, 0, 0, 0);
+        Image image = m_ShieldEmpty.GetComponentInChildren<Image> ();
+        image.color = new Color (0, 0, 0, 0);
 
 		m_ShieldEmptyCount++;
-
-		// Lock
-		LockTopScene ();
 	}
 
 	private void HideEmptyShield()
@@ -1279,9 +1264,6 @@ public class SSSceneManager : MonoBehaviour
 			if (m_ShieldEmptyCount == 0) 
 			{
 				m_ShieldEmpty.SetActive (false);
-
-				// Unlock
-				UnlockTopScene ();
 			}
 		}
 	}
@@ -1706,7 +1688,7 @@ public class SSSceneManager : MonoBehaviour
             ct.IsFocus = isFocus;
             ct.OnFocus(isFocus);
         }
-
+            
         if (!string.IsNullOrEmpty(sn) && m_DictAllScene.ContainsKey(sn))
         {
             GameObject sc = m_DictAllScene[sn];

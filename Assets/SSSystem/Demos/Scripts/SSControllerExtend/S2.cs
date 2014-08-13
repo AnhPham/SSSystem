@@ -3,13 +3,21 @@ using System.Collections;
 
 public class S2 : SSController 
 {
-	public override void Awake ()
+ 	public override void Config ()
 	{
 		BgmType = Bgm.PLAY;
 		BgmName = "S2";
 
 		IsCache = true;
 	}
+
+    public override void OnFocus(bool isFocus)
+    {
+        if (isFocus)
+        {
+            SceneManagerDemo.Instance.ShowMenu();
+        }
+    }
 
     public override void OnKeyBack()
     {

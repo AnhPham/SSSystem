@@ -4,3 +4,7 @@ RELEASE NOTES:
 
 Version 2.0.0
 SUPER BIG UPDATE: A new system! Support uGUI!
+WARNING: Because the priority of GraphicRayCaster is get only, the Scene Manager can't set it automatically. So you must:
+- Set the priority of GraphicRayCaster of your 'Loading' scene to 1 if you have a 'Loading' scene' (the highest priority).
+- Set the priority of GraphicRayCaster of your 'Menu' scene to 5 if you have a 'Menu' scene'.
+- Set the priority of GraphicRayCaster of your other scenes to 10 (or any number bigger than 5).

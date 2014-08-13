@@ -9,28 +9,14 @@ using System.Collections;
 
 public class SSRoot : MonoBehaviour 
 {
-	public bool PreventLoadCallBack { get; set; }
+    protected virtual void Start()
+    {
+        SetCameras ();
+        SetEvent();
+        SetController();
+    }
 
-	protected virtual void Awake()
-	{
-
-	}
-
-	protected virtual void Start()
-	{
-		CameraSetting ();
-        EventSetting();
-
-		if (!PreventLoadCallBack && SSSceneManager.Instance != null)
-		{
-			SSApplication.OnLoaded (gameObject);
-		}
-	}
-
-	/// <summary>
-	/// Cameras the setting. Set all cameras clearFlags to Depth. For avoid flicker when load to Base scene.
-	/// </summary>
-	protected void CameraSetting()
+	protected void SetCameras()
 	{
 		if (SSSceneManager.Instance == null) return;
 
@@ -40,17 +26,30 @@ public class SSRoot : MonoBehaviour
 			cam.clearFlags = CameraClearFlags.Depth;	
 		}
 	}
-
-    /// <summary>
-    /// Events setting.
-    /// </summary>
-    protected void EventSetting()
+        
+    protected void SetEvent()
     {
-        if (SSSceneManager.Instance == null && Application.isPlaying)
+        if (SSSceneManager.Instance == null)
         {
             GameObject go = new GameObject("EventSystem");
             go.AddComponent<EventSystem>();
             go.AddComponent<TouchInputModule>();
+        }
+    }
+        
+    protected void SetController()
+    {
+        if (SSSceneManager.Instance != null)
+        {
+            SSApplication.OnLoaded(gameObject);
+        }
+        else
+        {
+            SSController ct = GetComponentInChildren<SSController>();
+            if (ct != null)
+            {
+                ct.OnSetTest();
+            }
         }
     }
 }

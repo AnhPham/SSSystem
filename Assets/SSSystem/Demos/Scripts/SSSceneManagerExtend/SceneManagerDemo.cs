@@ -42,10 +42,8 @@ public class SceneManagerDemo : SSSceneManager
 
     protected override void OnFirstSceneLoad()
     {
-        LoadMenu("Menu", null, (SSController ctrl) =>
-        {
-            Screen("S1");
-        });
+        Screen("S1");
+        LoadMenu("Menu");
     }
 
     protected override void OnAnimationFinish(string sceneName)

@@ -118,18 +118,10 @@ public class SSAnimation : SSMotion
 		// Then the animation will automatically bring it back at next frame.
 		// This trick remove flicker at the first frame.
 		
-        transform.localPosition = new Vector3(99999, 0, 0);
-	}
-
-	/// <summary>
-	/// Start function.
-	/// </summary>
-	protected override void Start()
-	{
-		if (SSSceneManager.Instance == null)
-		{
-			PlayShow();
-		}
+        if (SSSceneManager.Instance != null)
+        {
+            transform.localPosition = new Vector3(99999, 0, 0);
+        }
 	}
 
 	private float Time(AnimationClip anim)

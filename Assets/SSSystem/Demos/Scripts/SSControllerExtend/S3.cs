@@ -5,7 +5,7 @@ public class S3 : SSController
 {
     GameObject m_Cube1;
 
-	public override void Awake ()
+	public override void Config ()
 	{
 		BgmType = Bgm.SAME;
 		BgmName = string.Empty;
@@ -25,8 +25,6 @@ public class S3 : SSController
 
     public override void OnFocus(bool isFocus)
     {
-        base.OnFocus(isFocus);
-
         m_Cube1.SetActive(isFocus);
     }
 

@@ -5,13 +5,18 @@ public class S4 : SSController
 {
     GameObject m_Sphere1;
 
-	public override void Awake ()
+	public override void Config ()
 	{
 		BgmType = Bgm.SAME;
 		BgmName = string.Empty;
 
 		IsCache = true;
 	}
+
+    public override void OnEnable()
+    {
+        SceneManagerDemo.Instance.HideMenu();
+    }
 
     public override void OnSet (object data)
     {

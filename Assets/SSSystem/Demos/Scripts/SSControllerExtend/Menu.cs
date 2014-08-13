@@ -3,7 +3,7 @@ using System.Collections;
 
 public class Menu : SSController 
 {
-	public override void Awake()
+	public override void Config()
 	{
 		BgmType = Bgm.SAME;
 		BgmName = string.Empty;
