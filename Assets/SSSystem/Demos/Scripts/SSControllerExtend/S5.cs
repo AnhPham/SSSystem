@@ -1,9 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class S3 : SSController 
+public class S5 : SSController 
 {
-    GameObject m_Cube1;
+    GameObject m_Capsule1;
 
 	public override void Config ()
 	{
@@ -15,17 +15,22 @@ public class S3 : SSController
 
 	public override void OnSet (object data)
 	{
-        if (m_Cube1 == null)
+        if (m_Capsule1 == null)
         {
-            m_Cube1 = GameObject.Find("Cube1");
+            m_Capsule1 = GameObject.Find("Capsule1");
         }
 
-        m_Cube1.SetActive(false);
+        m_Capsule1.SetActive(false);
 	}
 
-    public override void OnFocus(bool isFocus)
+    public override void OnShow()
     {
-        m_Cube1.SetActive(isFocus);
+        m_Capsule1.SetActive(true);
+    }
+
+    public override void OnHide()
+    {
+        m_Capsule1.SetActive(false);
     }
 
     public void OnButtonPopUp1Tap()
@@ -41,10 +46,5 @@ public class S3 : SSController
     public void OnButtonCloseTap()
     {
         SceneManagerDemo.Instance.Close();
-    }
-
-    public void OnButtonAddScreen5Tap()
-    {
-        SceneManagerDemo.Instance.AddScreen("S5");
     }
 }

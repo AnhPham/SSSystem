@@ -24,11 +24,12 @@ public class SSController : MonoBehaviour
 	#endregion
 
 	#region Protected Member
-	public bool 	IsFocus 	{ get; set; }
+	public bool 	    IsFocus { get; set; }
+    public GameObject   Root    { get; set; }
 	#endregion
 
 	/// <summary>
-	/// Config here
+	/// Only BgmType, BgmName and IsCache can be config here. Don't write any other code.
 	/// </summary>
 	public virtual void Config()
 	{
@@ -107,4 +108,16 @@ public class SSController : MonoBehaviour
             cam.enabled = isVisible;
 		}
 	}
+
+    /// <summary>
+    /// Resets the motion.
+    /// </summary>
+    public void ResetMotion()
+    {
+        SSMotion[] motions = Root.GetComponentsInChildren<SSMotion>(true);
+        foreach (var motion in motions)
+        {
+            motion.Reset();
+        }
+    }
 }

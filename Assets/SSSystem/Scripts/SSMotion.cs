@@ -14,6 +14,13 @@ public class SSMotion : MonoBehaviour
 	protected virtual void Awake()
 	{
 	}
+        
+    /// <summary>
+    /// Reset animation.
+    /// </summary>
+    public virtual void Reset()
+    {
+    }
 
 	/// <summary>
 	/// Start function.

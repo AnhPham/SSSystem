@@ -10,7 +10,7 @@ public class P1 : SSController
 		BgmType = Bgm.SAME;
 		BgmName = string.Empty;
 
-		IsCache = false;
+        IsCache = true;
 	}
 
     public override void OnSet(object data)

@@ -120,9 +120,14 @@ public class SSAnimation : SSMotion
 		
         if (SSSceneManager.Instance != null)
         {
-            transform.localPosition = new Vector3(99999, 0, 0);
+            Reset();
         }
 	}
+
+    public override void Reset()
+    {
+        transform.localPosition = new Vector3(SSConst.VERY_FAR, 0, 0);
+    }
 
 	private float Time(AnimationClip anim)
 	{
