@@ -18,8 +18,8 @@ public class SSModule
     public delegate void ShieldOnDelegate(int i);
     public delegate void ShieldOffDelegate();
 
-    public delegate void OnFocusDelegate(string sceneName, SSController controller, bool isFocus);
-    public delegate void OnFocusMenuDelegate(bool isFocus);
+    public delegate void OnFocusSceneDelegate(string sceneName, SSController controller, bool isFocus);
+    public delegate void OnFocusDelegate(bool isFocus);
 
     public delegate void FocusByOpenDelegate(string sceneName, string curBgm);
     public delegate void FocusByCloseOtherDelegate(string sceneName);
@@ -53,8 +53,8 @@ public class SSModule
     public GetSceneDictionaryDelegate getSceneDictionary;
     public GetControllerDelegate getController;
 
+    public OnFocusSceneDelegate onFocusScene;
     public OnFocusDelegate onFocus;
-    public OnFocusMenuDelegate onFocusMenu;
 
     public FocusByOpenDelegate focusByOpen;
     public FocusByCloseOtherDelegate focusByCloseOther;
@@ -145,19 +145,19 @@ public class SSModule
         return null;
     }
 
-    protected void OnFocus(string sceneName, SSController controller, bool isFocus)
+    protected void OnFocusScene(string sceneName, SSController controller, bool isFocus)
     {
-        if (onFocus != null)
+        if (onFocusScene != null)
         {
-            onFocus(sceneName, controller, isFocus);
+            onFocusScene(sceneName, controller, isFocus);
         }
     }
 
-    protected void OnFocusMenu(bool isFocus)
+    protected void OnFocus(bool isFocus)
     {
-        if (onFocusMenu != null)
+        if (onFocus != null)
         {
-            onFocusMenu(isFocus);
+            onFocus(isFocus);
         }
     }
 

@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class SSScreenModule : SSModule
+public class SSScreenModule : SSModule, IUnderPopUp
 {
     protected Stack<string> m_CurrentStackScreen = new Stack<string>();
     protected Dictionary<string, Stack<string>> m_DictScreen = new Dictionary<string, Stack<string>>();
@@ -84,7 +84,7 @@ public class SSScreenModule : SSModule
         string curBgm = ct.CurrentBgm;
 
         // Thread 2
-        OnFocus(preSn, ct, false);
+        OnFocusScene(preSn, ct, false);
 
         // Thread 1
         OpenCommon (sn, ip, ic, data, imme, curBgm, () => 
@@ -351,5 +351,20 @@ public class SSScreenModule : SSModule
                 }
             }
         }
+    }
+
+    public string GetCurrentSceneName()
+    {
+        if (HasScreenInActiveStack())
+        {
+            return Peek();
+        }
+
+        return null;
+    }
+        
+    public bool IsBgmDecider()
+    {
+        return true;
     }
 }

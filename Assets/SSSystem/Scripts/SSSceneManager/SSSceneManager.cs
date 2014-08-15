@@ -534,8 +534,8 @@ public class SSSceneManager : MonoBehaviour
             modules.getSceneDictionary += GetSceneDictionary;
             modules.getController += GetController;
 
+            modules.onFocusScene += OnFocusScene;
             modules.onFocus += OnFocus;
-            modules.onFocusMenu += OnFocusMenu;
 
             modules.focusByOpen += FocusByOpen;
             modules.focusByCloseOther += FocusByCloseOther;
@@ -735,18 +735,24 @@ public class SSSceneManager : MonoBehaviour
 
     private string GetHighestScene()
     {
-        string sn = null;
-
         if (m_PopUpModule.HasPopUpInStack())
         {
-            sn = m_PopUpModule.Peek();
-        }
-        else if (m_ScreenModule.HasScreenInActiveStack())
-        {
-            sn = m_ScreenModule.Peek();
+            return m_PopUpModule.Peek();
         }
 
-        return sn;
+        foreach (var module in SSModule.list)
+        {
+            if (module is IUnderPopUp)
+            {
+                IUnderPopUp up = (IUnderPopUp)module;
+                if (up.IsBgmDecider())
+                {
+                    return up.GetCurrentSceneName();
+                }
+            }
+        }
+
+        return null;
     }
 
     private void ShieldOn(int i)
@@ -898,7 +904,7 @@ public class SSSceneManager : MonoBehaviour
 		SSController ct = GetController (sn);
 
 		// On Show
-        OnFocus(sn, ct, true);
+        OnFocusScene(sn, ct, true);
 
 		// On Scene Showed
 		if (onSceneFocus != null)
@@ -922,7 +928,7 @@ public class SSSceneManager : MonoBehaviour
 		// On Show
 		if (ct != null)
 		{
-            OnFocus(sn, ct, true);
+            OnFocusScene(sn, ct, true);
             ct.OnShow();
 		}
 
@@ -1071,19 +1077,19 @@ public class SSSceneManager : MonoBehaviour
                 // Animation
                 AnimType animType = (imme) ? AnimType.NO_ANIM : AnimType.SHOW;
                 StartCoroutine (IEPlayAnimation (sn, animType, () => 
-                    {
-                        // Show & BGM change
-                        FocusByOpen (sn, curBgm);
+                {
+                    // Show & BGM change
+                    FocusByOpen (sn, curBgm);
 
-                        // Hide empty shield
-                        m_ShieldModule.HideEmptyShield();
+                    // Hide empty shield
+                    m_ShieldModule.HideEmptyShield();
 
-                        // Call back
-                        if (onAnimEnded != null) onAnimEnded();
+                    // Call back
+                    if (onAnimEnded != null) onAnimEnded();
 
-                        // No busy
-                        SetBusy(false);
-                    }));
+                    // No busy
+                    SetBusy(false);
+                }));
             }, onActive, onDeactive);
     }
 
@@ -1101,7 +1107,7 @@ public class SSSceneManager : MonoBehaviour
             m_ShieldModule.ShowEmptyShield ();
 
 			// Hide
-            OnFocus(sn, ct, false);
+            OnFocusScene(sn, ct, false);
             ct.OnHide ();
 
 			StartCoroutine(IEPlayAnimation(sn, animType, () =>
@@ -1134,17 +1140,24 @@ public class SSSceneManager : MonoBehaviour
 		SetBusy(true);
 	}
 
-    private void OnFocusMenu(bool isFocus)
+    private void OnFocus(bool isFocus)
     {
-        if (m_MenuModule.IsExistMenu())
+        foreach (var module in SSModule.list)
         {
-            string n = m_MenuModule.Name();
+            if (module is IUnderPopUp)
+            {
+                IUnderPopUp up = (IUnderPopUp)module;
+                string sn = up.GetCurrentSceneName();
 
-            OnFocus(n, GetController(n), isFocus);
+                if (!string.IsNullOrEmpty(sn))
+                {
+                    OnFocusScene(sn, GetController(sn), isFocus);
+                }
+            }
         }
     }
 
-    private void OnFocus(string sceneName, SSController ct, bool isFocus)
+    private void OnFocusScene(string sceneName, SSController ct, bool isFocus)
     {
         string sn = sceneName;
 

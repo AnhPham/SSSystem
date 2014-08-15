@@ -42,10 +42,10 @@ public class SSPopUpModule : SSModule
         }
 
         // Lost Focus Pre scene
-        OnFocus(preSn, ct, false);
+        OnFocusScene(preSn, ct, false);
 
         // Lost Focus Menu
-        OnFocusMenu(false);
+        OnFocus(false);
 
         // Push stack
         m_StackPopUp.Push(sn);
@@ -71,7 +71,7 @@ public class SSPopUpModule : SSModule
             // Focus Menu
             if (m_StackPopUp.Count == 0)
             {
-                OnFocusMenu(true);
+                OnFocus(true);
             }
 
             // Callback

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class SSMenuModule : SSModule
+public class SSMenuModule : SSModule, IUnderPopUp
 {
     protected GameObject m_Menu;
 
@@ -59,5 +59,20 @@ public class SSMenuModule : SSModule
     public string Name()
     {
         return m_Menu.name;
+    }
+
+    public string GetCurrentSceneName()
+    {
+        if (m_Menu != null)
+        {
+            return m_Menu.name;
+        }
+
+        return null;
+    }
+
+    public bool IsBgmDecider()
+    {
+        return false;
     }
 }
