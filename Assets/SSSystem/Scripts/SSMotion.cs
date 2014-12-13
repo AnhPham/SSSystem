@@ -8,19 +8,17 @@ using System.Collections;
 
 public class SSMotion : MonoBehaviour 
 {
+    /// <summary>
+    /// The state of the motion
+    /// </summary>
+    protected AnimType m_State;
+
 	/// <summary>
 	/// Awake function.
 	/// </summary>
 	protected virtual void Awake()
 	{
 	}
-        
-    /// <summary>
-    /// Reset animation.
-    /// </summary>
-    public virtual void Reset()
-    {
-    }
 
 	/// <summary>
 	/// Start function.
@@ -35,6 +33,13 @@ public class SSMotion : MonoBehaviour
 	protected virtual void Update()
 	{
 	}
+
+    /// <summary>
+    /// Reset() called after activating a game object and before playing an animation.
+    /// </summary>
+    public virtual void Reset(AnimType animType)
+    {
+    }
 
 	/// <summary>
 	/// Time of show - animation by second.
@@ -99,4 +104,18 @@ public class SSMotion : MonoBehaviour
 	public virtual void PlayHideBack()
 	{
 	}
+
+    /// <summary>
+    /// Raises the enable event.
+    /// </summary>
+    protected virtual void OnEnable()
+    {
+    }
+
+    /// <summary>
+    /// Raises the disable event.
+    /// </summary>
+    protected virtual void OnDisable()
+    {
+    }
 }

@@ -6,6 +6,7 @@
 using UnityEngine;
 using System.Collections;
 
+[ExecuteInEditMode]
 public class SSController : MonoBehaviour 
 {
 	#region Event
@@ -20,19 +21,19 @@ public class SSController : MonoBehaviour
 	#endregion
 
 	#region Public Member
-	public string 	CurrentBgm { get; set; }
-	#endregion
-
-	#region Protected Member
-	public bool 	    IsFocus { get; set; }
-    public GameObject   Root    { get; set; }
+	public string 	CurrentBgm  { get; set; }
+    public bool     IsFocus     { get; private set; }
+    public bool     IsStarted   { get; private set; }
+    public SSRoot   Root        { get; private set; }
 	#endregion
 
 	/// <summary>
-	/// Only BgmType, BgmName and IsCache can be config here. Don't write any other code.
+	/// Config here
 	/// </summary>
-	public virtual void Config()
+	public virtual void Awake()
 	{
+        CreateRoot();
+
 		BgmType = Bgm.NONE;
 		BgmName = string.Empty;
 
@@ -40,10 +41,42 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
+	/// If you want to override this Start() function. Don't forget call base.Start() in it.
+	/// </summary>
+	public virtual void Start()
+	{
+		if (SSSceneManager.Instance == null)
+		{
+            OnStartWithoutSceneManager();
+		}
+
+		OnEnableFS ();
+		IsStarted = true;
+	}
+
+	/// <summary>
+    /// This event will not be raised if you open this scene from a Base scene contains SSSceneManager. Write anything here for testing. It's called at Start().
+	/// </summary>
+    public virtual void OnStartWithoutSceneManager()
+	{
+	}
+
+	/// <summary>
+	/// FS means 'First in Start'.  The first call of OnEnable() is right after Awake(). The first call of OnEnableFS() is in Start().
+	/// </summary>
+	public virtual void OnEnableFS()
+	{
+	}
+
+	/// <summary>
     /// Raise the event which right after scene loaded or actived. An Unity default event which be called when set active true a game object.
 	/// </summary>
 	public virtual void OnEnable()
 	{
+		if (IsStarted)
+		{
+			OnEnableFS ();
+		}
 	}
 
 	/// <summary>
@@ -53,13 +86,6 @@ public class SSController : MonoBehaviour
 	public virtual void OnSet(object data)
 	{
 	}
-
-    /// <summary>
-    /// This event will not be raised if you open this scene from a Base scene contains SSSceneManager. Write anything here for testing a alone scene.
-    /// </summary>
-    public virtual void OnSetTest()
-    {
-    }
 
 	/// <summary>
     /// Raises the event when show-animation complete (only one time when this scene's opened by Screen(), AddScreen(), PopUp() of SSSceneManager)
@@ -87,7 +113,26 @@ public class SSController : MonoBehaviour
 	/// </summary>
     public virtual void OnFocus(bool isFocus)
 	{
+        IsFocus = isFocus;
 	}
+
+    /*
+	/// <summary>
+	/// On Lock scene
+	/// </summary>
+	public virtual void OnLock()
+	{
+		IsLock = true;
+	}
+
+	/// <summary>
+	/// On Unlock scene
+	/// </summary>
+	public virtual void OnUnlock()
+	{
+		IsLock = false;
+	}
+    */
 
 	/// <summary>
     /// Raises the key back click event (for android). By default, the Close() method of SSSceneManager will be called.
@@ -98,26 +143,59 @@ public class SSController : MonoBehaviour
 	}
 
 	/// <summary>
-    /// Visible / Invisible this scene by enable all its cameras
+    /// Visible this scene by enable all its cameras
 	/// </summary>
-    public virtual void Visible(bool isVisible)
+	public virtual void Visible()
 	{
 		Camera[] cams = GetComponentsInChildren<Camera> ();
 		foreach (var cam in cams)
 		{
-            cam.enabled = isVisible;
+			cam.enabled = true;
 		}
 	}
 
+	/// <summary>
+    /// Invisible this scene by disable all its cameras
+	/// </summary>
+	public virtual void Invisible()
+	{
+		Camera[] cams = GetComponentsInChildren<Camera> ();
+		foreach (var cam in cams) 
+		{
+			cam.enabled = false;
+		}
+	}
+        
+    #if UNITY_EDITOR
     /// <summary>
-    /// Resets the motion.
+    /// Raises the validate event.
     /// </summary>
-    public void ResetMotion()
+    protected virtual void OnValidate()
     {
-        SSMotion[] motions = Root.GetComponentsInChildren<SSMotion>(true);
-        foreach (var motion in motions)
+        CreateRoot();
+    }
+    #endif
+
+    /// <summary>
+    /// If root null, find the root game object then add SSRoot to it.
+    /// </summary>
+    protected virtual void CreateRoot()
+    {
+        if (Root == null && !Application.isPlaying)
         {
-            motion.Reset();
+            Transform root = gameObject.transform;
+            while (root.parent != null)
+            {
+                root = root.parent;
+            }
+
+            SSRoot ssRoot = root.GetComponent<SSRoot>();
+            if (ssRoot == null)
+            {
+                root.gameObject.AddComponent<SSRoot>();
+            }
+
+            Root = ssRoot;
         }
     }
 }

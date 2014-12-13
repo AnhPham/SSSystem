@@ -4,52 +4,116 @@
  */
 
 using UnityEngine;
-using UnityEngine.EventSystems;
 using System.Collections;
+using System.Collections.Generic;
 
+using UnityEngine.EventSystems;
+
+#if UNITY_EDITOR
+using UnityEditor;
+using System.IO;
+#endif
+
+[ExecuteInEditMode]
 public class SSRoot : MonoBehaviour 
 {
-    protected virtual void Start()
+	public bool PreventLoadCallBack { get; set; }
+
+    [SerializeField]
+    protected Camera[] m_Cameras;
+
+    [SerializeField]
+    protected EventSystem m_EventSystem;
+
+    [HideInInspector]
+    public Dictionary<Camera, CameraClearFlags> AllCameraClearFlags = new Dictionary<Camera, CameraClearFlags>();
+
+    public Camera[] cameras
     {
-        SetCameras ();
-        SetEvent();
-        SetController();
+        get { return m_Cameras; }
     }
 
-	protected void SetCameras()
+    public EventSystem eventSystem
+    {
+        get { return m_EventSystem; }
+    }
+
+    /*
+    #if UNITY_EDITOR
+    void OnValidate()
+    {
+        Rename();
+        FindCameras();
+        FindEventSystems();
+    }
+    #endif
+    */
+
+	protected virtual void Awake()
 	{
-		if (SSSceneManager.Instance == null) return;
+        #if UNITY_EDITOR
+        Rename();
+        FindCameras();
+        FindEventSystems();
+        #endif
 
-		Camera[] cams = gameObject.GetComponentsInChildren<Camera> (true);
-		foreach (Camera cam in cams) 
-		{
-			cam.clearFlags = CameraClearFlags.Depth;	
-		}
-	}
-        
-    protected void SetEvent()
-    {
-        if (SSSceneManager.Instance == null)
+        if (Application.isPlaying && !PreventLoadCallBack && SSSceneManager.Instance != null)
         {
-            GameObject go = new GameObject("EventSystem");
-            go.AddComponent<EventSystem>();
-            go.AddComponent<TouchInputModule>();
-        }
-    }
-        
-    protected void SetController()
-    {
-        if (SSSceneManager.Instance != null)
-        {
+            foreach (Camera cam in m_Cameras)
+            {
+                AllCameraClearFlags.Add(cam, cam.clearFlags);
+                cam.clearFlags = CameraClearFlags.Depth;
+            }
+
             SSApplication.OnLoaded(gameObject);
         }
-        else
+	}
+
+	protected virtual void Start()
+	{
+	}
+
+    protected virtual void Update()
+    {
+        #if UNITY_EDITOR
+        FindCameras();
+        FindEventSystems();
+        #endif
+    }
+
+    #if UNITY_EDITOR
+    protected void Rename()
+    {
+        if (!Application.isPlaying)
         {
-            SSController ct = GetComponentInChildren<SSController>();
-            if (ct != null)
+            gameObject.name = Path.GetFileNameWithoutExtension(EditorApplication.currentScene);
+        }
+    }
+
+    protected void FindCameras()
+    {
+        if (!Application.isPlaying)
+        {
+            m_Cameras = FindObjectsOfType<Camera>();
+        }
+    }
+
+    protected void FindEventSystems()
+    {
+        if (!Application.isPlaying && m_EventSystem == null)
+        {
+            m_EventSystem = FindObjectOfType<EventSystem>();
+
+            if (m_EventSystem != null && !(m_EventSystem is SSEventSystemAutoDestroy))
             {
-                ct.OnSetTest();
+                GameObject go = m_EventSystem.gameObject;
+
+                SSEventSystemAutoDestroy esad = go.AddComponent<SSEventSystemAutoDestroy>();
+
+                DestroyImmediate(m_EventSystem);
+                m_EventSystem = esad;
             }
         }
     }
+    #endif
 }

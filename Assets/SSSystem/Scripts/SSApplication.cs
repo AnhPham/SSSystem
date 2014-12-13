@@ -8,7 +8,7 @@ public class SSApplication
 
 	private static Dictionary<string, OnLoadedDelegate> m_OnLoaded = new Dictionary<string, OnLoadedDelegate>();
 
-	public static void LoadLevelAdditive(string sceneName, bool isAsync = false, OnLoadedDelegate onLoaded = null)
+    public static void LoadLevel(string sceneName, bool isAsync = false, bool isAdditive = false, OnLoadedDelegate onLoaded = null)
 	{
 		if (m_OnLoaded.ContainsKey (sceneName)) 
 		{
@@ -20,11 +20,17 @@ public class SSApplication
 
 		if (!isAsync)
 		{
-			Application.LoadLevelAdditive (sceneName);
+            if (isAdditive)
+                Application.LoadLevelAdditive (sceneName);
+            else
+                Application.LoadLevel (sceneName);
 		}
 		else
 		{
-			Application.LoadLevelAdditiveAsync (sceneName);
+            if (isAdditive)
+                Application.LoadLevelAdditiveAsync (sceneName);
+            else
+                Application.LoadLevelAsync (sceneName);
 		}
 	}
 

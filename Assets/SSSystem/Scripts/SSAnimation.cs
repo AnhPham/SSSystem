@@ -97,6 +97,19 @@ public class SSAnimation : SSMotion
 		Play(m_HideBackClip);
 	}
 
+    /// <summary>
+    /// Awake function.
+    /// </summary>
+    protected override void Awake()
+    {
+        base.Awake();
+
+        // We should bring this scene to somewhere far when it awake.
+        // Then the animation will automatically bring it back at next frame.
+        // This trick remove flicker at the first frame.
+        transform.localPosition = new Vector3(99999, 0, 0);
+    }
+
 	/// <summary>
 	/// Update function.
 	/// </summary>
@@ -110,24 +123,15 @@ public class SSAnimation : SSMotion
 	}
 
 	/// <summary>
-	/// Awake function.
+	/// Start function.
 	/// </summary>
-	protected override void Awake()
+	protected override void Start()
 	{
-		// We should bring this scene to somewhere far when it awake.
-		// Then the animation will automatically bring it back at next frame.
-		// This trick remove flicker at the first frame.
-		
-        if (SSSceneManager.Instance != null)
-        {
-            Reset();
-        }
+		if (SSSceneManager.Instance == null)
+		{
+			PlayShow();
+		}
 	}
-
-    public override void Reset()
-    {
-        transform.localPosition = new Vector3(SSConst.VERY_FAR, 0, 0);
-    }
 
 	private float Time(AnimationClip anim)
 	{
