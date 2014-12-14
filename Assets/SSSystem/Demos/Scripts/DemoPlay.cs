@@ -9,6 +9,9 @@ public class DemoPlay : SSController
     [SerializeField]
     Transform m_Target;
 
+    [SerializeField]
+    Transform m_MoveButton;
+
     public override void OnShow()
     {
         SSSceneManager.Instance.HideMenu();

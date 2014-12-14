@@ -1,15 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Reflection;
 
 using UnityEngine.UI;
 
 public class DemoMenu : SSController
 {
     [SerializeField]
-    Image m_Tap1Image;
+    GameObject m_Tap1Image;
 
     [SerializeField]
-    Image m_Tap2Image;
+    GameObject m_Tap2Image;
 
     public override void OnEnable()
     {
@@ -46,13 +47,35 @@ public class DemoMenu : SSController
         switch (sceneName)
         {
             case "DemoScreen1":
-                m_Tap1Image.color = Color.gray;
-                m_Tap2Image.color = Color.white;
+                SetColor(m_Tap1Image, Color.gray);
+                SetColor(m_Tap2Image, Color.white);
                 break;
             case "DemoScreen3":
-                m_Tap2Image.color = Color.gray;
-                m_Tap1Image.color = Color.white;
+                SetColor(m_Tap2Image, Color.gray);
+                SetColor(m_Tap1Image, Color.white);
                 break;
         }
+    }
+
+    void SetColor(GameObject go, Color color)
+    {
+        // uGUI
+        Component image = go.GetComponent("Image");
+        if (image != null)
+        {
+            SetColorReflection(image, color);
+        }
+
+        // nGUI
+        Component uiWidget = go.GetComponent("UIWidget");
+        if (uiWidget != null)
+        {
+            SetColorReflection(uiWidget, color);
+        }
+    }
+
+    void SetColorReflection(Component comp, Color color)
+    {
+        SSReflection.SetPropValue(comp, "color", color);
     }
 }

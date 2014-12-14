@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class AutoAddUICamera : MonoBehaviour 
+public class SSAutoAddUICamera : MonoBehaviour 
 {
 	private void Awake()
 	{

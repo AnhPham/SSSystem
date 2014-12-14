@@ -17,12 +17,6 @@ public class SSuGUIBaseAnimation : SSMotion
         base.Awake();
 
         m_RectTrans = GetComponent<RectTransform>();
-
-        // We should bring this scene to somewhere far when it awake.
-        // Then the animation will automatically bring it back at next frame.
-        // This trick remove flicker at the first frame.
-
-        m_RectTrans.anchoredPosition = new Vector2(99999, 0);
     }
 
     protected override void Start()

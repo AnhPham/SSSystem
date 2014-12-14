@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Reflection;
 using UnityEngine.UI;
 
 public class DemoPopupData
@@ -31,7 +32,7 @@ public class DemoPopup : SSController
     public OnOkButtonTapDelegate onOkButtonTap;
 
     [SerializeField]
-    Text m_Text;
+    GameObject m_Text;
 
     [SerializeField]
     GameObject m_ButtonOk;
@@ -48,7 +49,7 @@ public class DemoPopup : SSController
     {
         DemoPopupData popupData = (DemoPopupData)data;
 
-        m_Text.text = popupData.Title;
+        SetText(m_Text, popupData.Title);
         m_Type = popupData.Type;
 
         m_ButtonYes.SetActive(m_Type == DemoPopupType.YES_NO);
@@ -82,5 +83,27 @@ public class DemoPopup : SSController
         }
 
         SSSceneManager.Instance.Close();
+    }
+
+    void SetText(GameObject go, string text)
+    {
+        // uGUI
+        Component uGuiText = go.GetComponent("Text");
+        if (uGuiText != null)
+        {
+            SetColorReflection(uGuiText, text);
+        }
+
+        // nGUI
+        Component nGuiLabel = go.GetComponent("UILabel");
+        if (nGuiLabel != null)
+        {
+            SetColorReflection(nGuiLabel, text);
+        }
+    }
+
+    void SetColorReflection(Component comp, string text)
+    {
+        SSReflection.SetPropValue(comp, "text", text);
     }
 }

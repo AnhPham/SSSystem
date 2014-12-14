@@ -29,6 +29,33 @@ public class SSAnimation : SSMotion
 	bool m_IsPlaying = false;
 	bool m_IsEndAnim = false;
 
+    /// <summary>
+    /// Reset() called after activating a game object and before playing an animation.
+    /// </summary>
+    /// <param name="animType">Animation type.</param>
+    public override void Reset(AnimType animType)
+    {
+        base.Reset(animType);
+
+        switch (animType)
+        {
+            case AnimType.HIDE:
+                PlayOnlyZeroFrame(m_HideClip);
+                break;
+            case AnimType.HIDE_BACK:
+                PlayOnlyZeroFrame(m_HideBackClip);
+                break;
+            case AnimType.SHOW:
+                PlayOnlyZeroFrame(m_ShowClip);
+                break;
+            case AnimType.SHOW_BACK:
+                PlayOnlyZeroFrame(m_ShowBackClip);
+                break;
+            default:
+                break;
+        }
+    }
+
 	/// <summary>
 	/// Time of show - animation by second.
 	/// </summary>
@@ -97,19 +124,6 @@ public class SSAnimation : SSMotion
 		Play(m_HideBackClip);
 	}
 
-    /// <summary>
-    /// Awake function.
-    /// </summary>
-    protected override void Awake()
-    {
-        base.Awake();
-
-        // We should bring this scene to somewhere far when it awake.
-        // Then the animation will automatically bring it back at next frame.
-        // This trick remove flicker at the first frame.
-        transform.localPosition = new Vector3(99999, 0, 0);
-    }
-
 	/// <summary>
 	/// Update function.
 	/// </summary>
@@ -143,28 +157,45 @@ public class SSAnimation : SSMotion
 		return anim.length;
 	}
 
+    private void PlayPrepare(AnimationClip anim)
+    {
+        if (anim == null)
+        {
+            return;
+        }
+
+        if (animation == null)
+        {
+            gameObject.AddComponent<Animation>();
+            animation.playAutomatically = false;
+            animation.cullingType = AnimationCullingType.AlwaysAnimate;
+        }
+
+        if (animation.GetClip(anim.name) == null)
+        {
+            animation.AddClip(anim, anim.name);
+        }
+
+        animation.clip = anim;
+    }
+
 	private void Play(AnimationClip anim)
 	{
-		if (anim == null)
-		{
-			return;
-		}
+        PlayPrepare(anim);
 
-		if (animation == null)
-		{
-			gameObject.AddComponent<Animation>();
-			animation.playAutomatically = false;
-			animation.cullingType = AnimationCullingType.AlwaysAnimate;
-		}
+        animation.Stop();
 
-		if (animation.GetClip(anim.name) == null)
-		{
-			animation.AddClip(anim, anim.name);
-		}
-
-		animation.clip = anim;
 		PlayAnimation (animation, anim.name);
 	}
+
+    private void PlayOnlyZeroFrame(AnimationClip anim)
+    {
+        PlayPrepare(anim);
+
+        animation.Play();
+        animation[anim.name].time = 0;
+        animation.Sample();
+    }
 
 	private void AnimationUpdate()
 	{

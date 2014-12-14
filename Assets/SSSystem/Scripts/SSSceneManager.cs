@@ -639,7 +639,10 @@ public class SSSceneManager : MonoBehaviour
 			m_ShieldTop.SetActive (true);
 		}
 
-        SetShieldColor(m_ShieldTop, new Color (0, 0, 0, alpha));
+        Color color = m_DefaultShieldColor;
+        color.a = alpha;
+
+        SetShieldColor(m_ShieldTop, color);
 
 		// Lock
 		LockTopScene ();
@@ -934,7 +937,7 @@ public class SSSceneManager : MonoBehaviour
 		{
 			if (animType == AnimType.NO_ANIM && an != null) 
 			{
-                ResetAnimTransformPosition(an);
+                MoveAnimTransformPosition(an, 0);
 			}
 
 			if (callback != null)
@@ -942,15 +945,15 @@ public class SSSceneManager : MonoBehaviour
 		}
 	}
 
-    private void ResetAnimTransformPosition(SSMotion an)
+    private void MoveAnimTransformPosition(SSMotion an, float x)
     {
         switch (m_UIType)
         {
             case UIType.uGUI:
-                an.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+                an.GetComponent<RectTransform>().anchoredPosition = new Vector2(x, 0);
                 break;
             case UIType.nGUI:
-                an.transform.localPosition = Vector3.zero;
+                an.transform.localPosition = new Vector3(x, 0, 0);
                 break;
             default:
                 break;
@@ -1342,6 +1345,9 @@ public class SSSceneManager : MonoBehaviour
 				{
 					GameObject scene = root;
 
+                    // Bring to very far
+                    BringAnimationToVeryFar(scene);
+
 					// Add to dictionary
 					m_DictAllScene.Add(sn, scene);
 
@@ -1360,6 +1366,22 @@ public class SSSceneManager : MonoBehaviour
 				});
 		}
 	}
+
+    /// <summary>
+    /// We should bring this scene to somewhere far when it awake.
+    /// Then the animation will automatically bring it back at next frame.
+    /// This trick remove flicker at the first frame.
+    /// </summary>
+    /// <param name="scene">Scene.</param>
+    private void BringAnimationToVeryFar(GameObject scene)
+    {
+        SSMotion motion = scene.GetComponentInChildren<SSMotion>();
+
+        if (motion != null)
+        {
+            MoveAnimTransformPosition(motion, 99999);
+        }
+    }
 
     private void HideAll(Stack<string> stackScreen)
 	{
