@@ -22,7 +22,6 @@ public class SSController : MonoBehaviour
 
 	#region Public Member
 	public string 	CurrentBgm  { get; set; }
-    public bool     IsFocus     { get; private set; }
     public bool     IsStarted   { get; private set; }
     public SSRoot   Root        { get; private set; }
 	#endregion
@@ -113,26 +112,7 @@ public class SSController : MonoBehaviour
 	/// </summary>
     public virtual void OnFocus(bool isFocus)
 	{
-        IsFocus = isFocus;
 	}
-
-    /*
-	/// <summary>
-	/// On Lock scene
-	/// </summary>
-	public virtual void OnLock()
-	{
-		IsLock = true;
-	}
-
-	/// <summary>
-	/// On Unlock scene
-	/// </summary>
-	public virtual void OnUnlock()
-	{
-		IsLock = false;
-	}
-    */
 
 	/// <summary>
     /// Raises the key back click event (for android). By default, the Close() method of SSSceneManager will be called.
@@ -140,30 +120,6 @@ public class SSController : MonoBehaviour
 	public virtual void OnKeyBack()
 	{
 		SSSceneManager.Instance.Close ();
-	}
-
-	/// <summary>
-    /// Visible this scene by enable all its cameras
-	/// </summary>
-	public virtual void Visible()
-	{
-		Camera[] cams = GetComponentsInChildren<Camera> ();
-		foreach (var cam in cams)
-		{
-			cam.enabled = true;
-		}
-	}
-
-	/// <summary>
-    /// Invisible this scene by disable all its cameras
-	/// </summary>
-	public virtual void Invisible()
-	{
-		Camera[] cams = GetComponentsInChildren<Camera> ();
-		foreach (var cam in cams) 
-		{
-			cam.enabled = false;
-		}
 	}
         
     #if UNITY_EDITOR
