@@ -8,7 +8,7 @@ public class SSuGUIHorizontalSlideAnimation : SSuGUIBaseAnimation
         base.PlayHide();
 
         m_State = AnimType.HIDE;
-        m_Time = 0;
+        m_Time = Time.realtimeSinceStartup;
         m_MaxTime = TimeHide();
 
         m_Start = Vector2.zero;
@@ -20,7 +20,7 @@ public class SSuGUIHorizontalSlideAnimation : SSuGUIBaseAnimation
         base.PlayShow();
 
         m_State = AnimType.SHOW;
-        m_Time = 0;
+        m_Time = Time.realtimeSinceStartup;
         m_MaxTime = TimeShow();
 
         m_Start = new Vector2(Screen.width, 0);
@@ -32,7 +32,7 @@ public class SSuGUIHorizontalSlideAnimation : SSuGUIBaseAnimation
         base.PlayHideBack();
 
         m_State = AnimType.HIDE_BACK;
-        m_Time = 0;
+        m_Time = Time.realtimeSinceStartup;
         m_MaxTime = TimeHideBack();
 
         m_Start = Vector2.zero;
@@ -44,7 +44,7 @@ public class SSuGUIHorizontalSlideAnimation : SSuGUIBaseAnimation
         base.PlayShowBack();
 
         m_State = AnimType.SHOW_BACK;
-        m_Time = 0;
+        m_Time = Time.realtimeSinceStartup;
         m_MaxTime = TimeShowBack();
 
         m_Start = new Vector2(-Screen.width/2, 0);

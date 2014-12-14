@@ -55,10 +55,10 @@ public class SSuGUIBaseAnimation : SSMotion
 
         if (m_State != AnimType.NO_ANIM)
         {
-            m_Time += Time.deltaTime;
-            m_RectTrans.anchoredPosition = Vector2.Lerp(m_Start, m_End, m_Time / m_MaxTime);
+            float time = Time.realtimeSinceStartup - m_Time;
+            m_RectTrans.anchoredPosition = Vector2.Lerp(m_Start, m_End, time / m_MaxTime);
 
-            if (m_Time >= m_MaxTime)
+            if (time >= m_MaxTime)
             {
                 m_State = AnimType.NO_ANIM;
             }

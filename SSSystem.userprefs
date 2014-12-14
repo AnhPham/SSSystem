@@ -1,8 +1,11 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="../../../TestProject/Assets/SSSystem/Demos/Scripts/DemoSceneManager.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/SSSystem/Animations/uGUI/SSuGUIScaleAnimation.cs">
     <Files>
-      <File FileName="../../../TestProject/Assets/SSSystem/Demos/Scripts/DemoSceneManager.cs" Line="38" Column="38" />
+      <File FileName="Assets/SSSystem/Animations/uGUI/Base/SSuGUIBaseAnimation.cs" Line="21" Column="21" />
+      <File FileName="Assets/SSSystem/Animations/uGUI/SSuGUIHorizontalSlideAnimation.cs" Line="44" Column="44" />
+      <File FileName="Assets/SSSystem/Animations/uGUI/SSuGUIScaleAnimation.cs" Line="44" Column="44" />
+      <File FileName="Assets/SSSystem/Animations/uGUI/SSuGUIVerticalSlideAnimation.cs" Line="6" Column="6" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

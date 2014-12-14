@@ -17,7 +17,7 @@ public class SSuGUIVerticalSlideAnimation : SSuGUIBaseAnimation
         base.PlayHide();
 
         m_State = AnimType.HIDE;
-        m_Time = 0;
+        m_Time = Time.realtimeSinceStartup;
         m_MaxTime = TimeHide();
 
         int sign = (m_Direction == SSDirection.FROM_TOP) ? 1 : -1;
@@ -31,7 +31,7 @@ public class SSuGUIVerticalSlideAnimation : SSuGUIBaseAnimation
         base.PlayShow();
 
         m_State = AnimType.SHOW;
-        m_Time = 0;
+        m_Time = Time.realtimeSinceStartup;
         m_MaxTime = TimeShow();
 
         int sign = (m_Direction == SSDirection.FROM_TOP) ? 1 : -1;
