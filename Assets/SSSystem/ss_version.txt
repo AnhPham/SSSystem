@@ -4,6 +4,10 @@ RELEASE NOTES:
 
 Version 3.0.0: BIG UPDATE!!!
 
+* IMPORTANT:
+- If the current release version of Unity is 4.6.1, you have to download the patch 4.6.1p1 from here: http://unity3d.com/unity/qa/patch-releases
+For sure that the uGUI Canvas works correctly in overlay render mode.
+
 * NEW:
 - Support both nGUI & uGUI.
 - Add new demo.
