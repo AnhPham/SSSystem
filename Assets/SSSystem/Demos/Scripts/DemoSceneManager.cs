@@ -7,6 +7,8 @@ public class DemoSceneManager : SSSceneManager
     {
         base.OnFirstSceneLoad();
 
+        Application.targetFrameRate = 60;
+
         LoadMenu("DemoMenu");
     }
 }
