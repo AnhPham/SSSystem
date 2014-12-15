@@ -12,6 +12,8 @@ public class SSuGUIScaleAnimation : SSuGUIBaseAnimation
 
     public override void Reset(AnimType animType)
     {
+        base.Reset(animType);
+
         switch (animType)
         {
             case AnimType.HIDE:

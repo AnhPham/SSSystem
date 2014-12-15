@@ -16,7 +16,10 @@ public class SSuGUIBaseAnimation : SSMotion
     {
         base.Awake();
 
-        m_RectTrans = GetComponent<RectTransform>();
+        if (m_RectTrans == null)
+        {
+            m_RectTrans = GetComponent<RectTransform>();
+        }
     }
 
     protected override void Start()
@@ -26,6 +29,14 @@ public class SSuGUIBaseAnimation : SSMotion
         if (SSSceneManager.Instance == null)
         {
             PlayShow();
+        }
+    }
+
+    public override void Reset(AnimType animType)
+    {
+        if (m_RectTrans == null)
+        {
+            m_RectTrans = GetComponent<RectTransform>();
         }
     }
 
