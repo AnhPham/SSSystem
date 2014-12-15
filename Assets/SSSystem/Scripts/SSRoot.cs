@@ -51,12 +51,13 @@ public class SSRoot : MonoBehaviour
 
 	protected virtual void Awake()
 	{
+        /*
         #if UNITY_EDITOR
         Rename();
         FindCameras();
         FindEventSystems();
         #endif
-
+        */
         if (Application.isPlaying && !PreventLoadCallBack && SSSceneManager.Instance != null)
         {
             foreach (Camera cam in m_Cameras)
@@ -76,6 +77,7 @@ public class SSRoot : MonoBehaviour
     protected virtual void Update()
     {
         #if UNITY_EDITOR
+        Rename();
         FindCameras();
         FindEventSystems();
         #endif
