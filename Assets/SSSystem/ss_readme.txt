@@ -1,6 +1,9 @@
 I. How to use Demo:
-1. Add all scenes in SSSystem/Demos/Scenes/Common to Build Setting
-2. Play this scene: SSSystem/Demos/Scenes/Base/BaseDemo
+Video: http://youtu.be/FPwMFtBsHO8
+or simple:
+1. Add all scenes in SSSystem/Demos/Scenes/uGUI to Build Setting.
+2. Play this scene: SSSystem/Demos/Scenes/uGUI/DemoSceneManager
+3. If you want to play nGUI demo, import the newest NGUI version, then do again step 1 & 2, but using the paths ../nGUI/.. instead of ../uGUI/..
 --------------------------------------------------------
 II. All documents:
 1. Presentation:

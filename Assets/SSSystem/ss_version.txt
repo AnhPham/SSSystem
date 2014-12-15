@@ -8,7 +8,7 @@ Version 3.0.0: BIG UPDATE!!!
 - Support both nGUI & uGUI.
 - Add new demo.
 - Support NaviMesh.
-- Add "Clear On Load".
+- Add "Clear On Load" to SSSceneManager.
 
 * FIXED:
 - Fixed OnFocus bug.
