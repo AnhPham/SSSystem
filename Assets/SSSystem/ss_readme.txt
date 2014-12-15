@@ -1,5 +1,5 @@
 I. How to use Demo:
-Video: http://youtu.be/FPwMFtBsHO8
+Video: https://www.youtube.com/watch?v=FPwMFtBsHO8
 or simple:
 1. Add all scenes in SSSystem/Demos/Scenes/uGUI to Build Setting.
 2. Play this scene: SSSystem/Demos/Scenes/uGUI/DemoSceneManager
