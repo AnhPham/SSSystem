@@ -1929,6 +1929,7 @@ public class SSSceneManager : MonoBehaviour
         if (!Application.isPlaying)
         {
             string emptyScene = SSFile.GetPathTemplateFile("SSEmpty.unity");
+            emptyScene = emptyScene.Replace(System.IO.Path.DirectorySeparatorChar, '/');
 
             var scenes = EditorBuildSettings.scenes;
 
