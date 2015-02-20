@@ -1,6 +1,11 @@
-SS-SYSTEM VERSION 3.0.0
+SS-SYSTEM VERSION 3.0.1
 
 RELEASE NOTES:
+
+Version 3.0.1:
+- SSSceneManager and SSController no longer use [ExcuteOnEditMode]. Using this mode is reason of many problems.
+- (Windows) Fixed problem which SSEmpty is automatically added to Build Setting whenever you open/edit the scene contains SSSceneManager
+- Edit the summary of OnShow() method of SSController which is "OnShow() is always called after OnSet(), but we don't know the order of OnShow() and Start() in case the scene has no animation."
 
 Version 3.0.0: BIG UPDATE!!!
 

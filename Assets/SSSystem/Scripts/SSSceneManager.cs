@@ -70,7 +70,7 @@ public class CallbackData
 	}
 }
 
-[ExecuteInEditMode]
+[RequireComponent(typeof(SSAutoSceneManager))]
 public class SSSceneManager : MonoBehaviour 
 {
 	#region Const
@@ -468,36 +468,29 @@ public class SSSceneManager : MonoBehaviour
 	/// </summary>
 	protected virtual void Awake()
 	{
-        #if UNITY_EDITOR
-        AutoAddEmptyScene();
-        #endif
+        m_Instance = this;
+        m_GlobalBgm = string.Empty;
 
-        if (Application.isPlaying)
-        {
-            m_Instance = this;
-            m_GlobalBgm = string.Empty;
+        m_SolidCamera = Instantiate(Resources.Load("SolidCamera")) as GameObject;
+        m_SolidCamera.name = "SolidCamera";
+        m_SolidCamera.transform.parent = m_Instance.transform;
+        m_SolidCamera.transform.localPosition = new Vector3(-(SHIELD_TOP_INDEX + 0.5f) * m_SceneDistance, 0, 0);
 
-            m_SolidCamera = Instantiate(Resources.Load("SolidCamera")) as GameObject;
-            m_SolidCamera.name = "SolidCamera";
-            m_SolidCamera.transform.parent = m_Instance.transform;
-            m_SolidCamera.transform.localPosition = new Vector3(-(SHIELD_TOP_INDEX + 0.5f) * m_SceneDistance, 0, 0);
+        m_Scenes = new GameObject("Scenes");
+        m_Shields = new GameObject("Shields");
 
-            m_Scenes = new GameObject("Scenes");
-            m_Shields = new GameObject("Shields");
+        m_Scenes.transform.parent = m_Instance.transform;
+        m_Scenes.transform.localPosition = Vector3.zero;
 
-            m_Scenes.transform.parent = m_Instance.transform;
-            m_Scenes.transform.localPosition = Vector3.zero;
+        m_Shields.transform.parent = m_Instance.transform;
+        m_Shields.transform.localPosition = Vector3.zero;
 
-            m_Shields.transform.parent = m_Instance.transform;
-            m_Shields.transform.localPosition = Vector3.zero;
+        DontDestroyOnLoad(m_Instance.gameObject);
+        DontDestroyOnLoad(m_SolidCamera);
+        DontDestroyOnLoad(m_Scenes);
+        DontDestroyOnLoad(m_Shields);
 
-            DontDestroyOnLoad(m_Instance.gameObject);
-            DontDestroyOnLoad(m_SolidCamera);
-            DontDestroyOnLoad(m_Scenes);
-            DontDestroyOnLoad(m_Shields);
-
-            CreateLoadingsThenLoadFirstScene();
-        }
+        CreateLoadingsThenLoadFirstScene();
 	}
 
 	protected virtual void CreateLoadingsThenLoadFirstScene()
@@ -1915,50 +1908,6 @@ public class SSSceneManager : MonoBehaviour
 
 		m_IsBusy = true;
 	}
-
-    #if UNITY_EDITOR
-    private void OnValidate()
-    {
-        AutoAddEmptyScene();
-    }
-    #endif
-
-    #if UNITY_EDITOR
-    private void AutoAddEmptyScene()
-    {
-        if (!Application.isPlaying)
-        {
-            string emptyScene = SSFile.GetPathTemplateFile("SSEmpty.unity");
-            emptyScene = emptyScene.Replace(System.IO.Path.DirectorySeparatorChar, '/');
-
-            var scenes = EditorBuildSettings.scenes;
-
-            foreach (var scene in scenes)
-            {
-                // Check if exist, return
-                if (scene.path.CompareTo(emptyScene) == 0)
-                {
-                    return;
-                }
-            }
-
-            // If not exist
-            var newScenes = new EditorBuildSettingsScene[scenes.Length + 1];
-
-            for (int i = 0; i < scenes.Length; i++)
-            {
-                newScenes[i] = scenes[i];
-            }
-
-            EditorBuildSettingsScene emptySettingScene = new EditorBuildSettingsScene(emptyScene, true);
-            newScenes[newScenes.Length - 1] = emptySettingScene;
-
-            // Save
-            EditorBuildSettings.scenes = newScenes;
-            EditorApplication.SaveAssets();
-        }
-    }
-    #endif
 
     /*
 	private void OnGUI()

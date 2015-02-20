@@ -6,7 +6,7 @@
 using UnityEngine;
 using System.Collections;
 
-[ExecuteInEditMode]
+[RequireComponent(typeof(SSAutoController))]
 public class SSController : MonoBehaviour 
 {
 	#region Event
@@ -23,7 +23,6 @@ public class SSController : MonoBehaviour
 	#region Public Member
 	public string 	CurrentBgm  { get; set; }
     public bool     IsStarted   { get; private set; }
-    public SSRoot   Root        { get; private set; }
 	#endregion
 
 	/// <summary>
@@ -31,8 +30,6 @@ public class SSController : MonoBehaviour
 	/// </summary>
 	public virtual void Awake()
 	{
-        CreateRoot();
-
 		BgmType = Bgm.NONE;
 		BgmName = string.Empty;
 
@@ -88,6 +85,7 @@ public class SSController : MonoBehaviour
 
 	/// <summary>
     /// Raises the event when show-animation complete (only one time when this scene's opened by Screen(), AddScreen(), PopUp() of SSSceneManager)
+    /// OnShow() is always called after OnSet(), but we don't know the order of OnShow() and Start() in case the scene has no animation. 
 	/// </summary>
 	public virtual void OnShow()
 	{
@@ -121,37 +119,4 @@ public class SSController : MonoBehaviour
 	{
 		SSSceneManager.Instance.Close ();
 	}
-        
-    #if UNITY_EDITOR
-    /// <summary>
-    /// Raises the validate event.
-    /// </summary>
-    protected virtual void OnValidate()
-    {
-        CreateRoot();
-    }
-    #endif
-
-    /// <summary>
-    /// If root null, find the root game object then add SSRoot to it.
-    /// </summary>
-    protected virtual void CreateRoot()
-    {
-        if (Root == null && !Application.isPlaying)
-        {
-            Transform root = gameObject.transform;
-            while (root.parent != null)
-            {
-                root = root.parent;
-            }
-
-            SSRoot ssRoot = root.GetComponent<SSRoot>();
-            if (ssRoot == null)
-            {
-                root.gameObject.AddComponent<SSRoot>();
-            }
-
-            Root = ssRoot;
-        }
-    }
 }
