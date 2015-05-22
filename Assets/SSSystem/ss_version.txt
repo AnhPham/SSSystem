@@ -1,8 +1,17 @@
-SS-SYSTEM VERSION 3.0.1
+SS-SYSTEM VERSION 3.0.3
 
 RELEASE NOTES:
 
-Version 3.0.1:
+Version 3.0.3:
+- Support Unity 5.
+- Fixed the bug which popup is showed behind its shield.
+
+Version 3.0.2:
+
+* IMPORTANT:
+After updating to version 3.0.2, you must to add manually SSAutoSceneManager / SSAutoController to your game objects which contains SSSceneManager / SSController (to your existing scenes)
+
+* FIXED:
 - SSSceneManager and SSController no longer use [ExcuteOnEditMode]. Using this mode is reason of many problems.
 - (Windows) Fixed problem which SSEmpty is automatically added to Build Setting whenever you open/edit the scene contains SSSceneManager
 - Edit the summary of OnShow() method of SSController which is "OnShow() is always called after OnSet(), but we don't know the order of OnShow() and Start() in case the scene has no animation."

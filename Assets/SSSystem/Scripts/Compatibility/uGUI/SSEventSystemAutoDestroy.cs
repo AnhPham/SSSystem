@@ -12,7 +12,7 @@ public class SSEventSystemAutoDestroy : EventSystem
 
         if (instance != null)
         {
-            GameObject go = instance.gameObject;
+			GameObject go = instance.gameObject;
 
             go.SetActive(false);
             Destroy(go);

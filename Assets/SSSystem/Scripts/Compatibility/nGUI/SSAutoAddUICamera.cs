@@ -5,6 +5,6 @@ public class SSAutoAddUICamera : MonoBehaviour
 {
 	private void Awake()
 	{
-		gameObject.AddComponent("UICamera");
+		UnityEngineInternal.APIUpdaterRuntimeServices.AddComponent(gameObject, "Assets/SSSystem/Scripts/Compatibility/nGUI/SSAutoAddUICamera.cs (8,3)", "UICamera");
 	}
 }

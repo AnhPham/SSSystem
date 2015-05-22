@@ -816,6 +816,9 @@ public class SSSceneManager : MonoBehaviour
         {
             canvas.sortingOrder = Mathf.RoundToInt(i * DEPTH_DISTANCE) + c + 1;
             c++;
+
+            canvas.enabled = false;
+            canvas.enabled = true;
         }
     }
 
