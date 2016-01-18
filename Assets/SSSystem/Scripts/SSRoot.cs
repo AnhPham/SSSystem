@@ -88,7 +88,7 @@ public class SSRoot : MonoBehaviour
     {
         if (!Application.isPlaying)
         {
-            gameObject.name = Path.GetFileNameWithoutExtension(EditorApplication.currentScene);
+			gameObject.name = Path.GetFileNameWithoutExtension(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().name);
         }
     }
 

@@ -18,20 +18,37 @@ public class SSApplication
 
 		m_OnLoaded.Add(sceneName, onLoaded);
 
+		#if UNITY_5_2 || UNITY_5_1 || UNITY_5_0 || UNITY_4_6
 		if (!isAsync)
 		{
-            if (isAdditive)
-                Application.LoadLevelAdditive (sceneName);
-            else
-                Application.LoadLevel (sceneName);
+			if (isAdditive)
+				Application.LoadLevelAdditive (sceneName);
+			else
+				Application.LoadLevel (sceneName);
 		}
 		else
 		{
-            if (isAdditive)
-                Application.LoadLevelAdditiveAsync (sceneName);
-            else
-                Application.LoadLevelAsync (sceneName);
+			if (isAdditive)
+				Application.LoadLevelAdditiveAsync (sceneName);
+			else
+				Application.LoadLevelAsync (sceneName);
 		}
+		#else
+		if (!isAsync)
+		{
+			if (isAdditive)
+				UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+			else
+				UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+		}
+		else
+		{
+			if (isAdditive)
+				UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+			else
+				UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+		}
+		#endif
 	}
 
 	public static void OnLoaded(GameObject root)

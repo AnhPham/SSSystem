@@ -2,6 +2,9 @@ SS-SYSTEM VERSION 3.0.3
 
 RELEASE NOTES:
 
+Version 3.0.4:
+- Support Unity 5.3.
+
 Version 3.0.3:
 - Support Unity 5.
 - Fixed the bug which popup is showed behind its shield.
